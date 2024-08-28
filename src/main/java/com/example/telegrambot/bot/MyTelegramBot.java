@@ -1,7 +1,14 @@
 package com.example.telegrambot.bot;
 
+import com.example.telegrambot.help.Mailing;
 import com.example.telegrambot.model.UserChat;
+import com.example.telegrambot.model.Users;
+import com.example.telegrambot.repository.BotMessageRepository;
+import com.example.telegrambot.repository.MessageRepository;
 import com.example.telegrambot.repository.UserChatRepository;
+import com.example.telegrambot.repository.UserRepository;
+import com.example.telegrambot.service.MessageService;
+import com.example.telegrambot.service.impl.UserServiceImpl;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -24,50 +31,33 @@ public class MyTelegramBot extends TelegramLongPollingBot {
     private String botName;
     @Autowired
     private UserChatRepository userChatRepository;
+    @Autowired
+    private UserRepository userRepository;
+    @Autowired
+    private MessageRepository messageRepository;
+    @Autowired
+    private BotMessageRepository botMessageRepository;
+    @Autowired
+    private UserServiceImpl userService;
+    @Autowired
+    private MessageService messageService;
 
-    private Long chatId;
-
-    @PostConstruct
-    public void init() {
-        sendDailyMessage();
-    }
-
-    public void sendDailyMessage() {
-        Timer timer = new Timer();
-        TimerTask task = new TimerTask() {
-
-            @Override
-            public void run() {
-                LocalTime now = LocalTime.now();
-                if (now.getHour() == 1 && now.getMinute() == 3) {
-                    broadcastMessage("Это ежедневное сообщение!");
-
-                    this.cancel();
-                    timer.cancel();
-                }
-            }
-        };
-        timer.scheduleAtFixedRate(task, 0, 6000); // Проверяем каждую минуту
-    }
 
     @Override
     public void onUpdateReceived(Update update) {
         if (update.hasMessage() && update.getMessage().hasText()) {
             Long chatId = update.getMessage().getChatId();
+            Users currUser = userRepository.getUsersByUsername(update.getMessage().getFrom().getUserName());
 
-            // Проверка и сохранение chatId
-            if (!userChatRepository.existsByChatId(chatId)) {
-                UserChat userChat = new UserChat();
-                userChat.setChatId(chatId);
-                userChatRepository.save(userChat);
+            if (!(userChatRepository.existsByChatId(chatId) && userRepository.existsByChatId(chatId))) {
+                userService.createUser(update);
             }
 
-            // Создание и отправка ответа пользователю
+            messageService.sendMessage(update, currUser);
+
             SendMessage message = new SendMessage();
+            message.setText("Ваш ответ записан\n```\n" + update.getMessage().getText() + "\n```");
             message.setChatId(chatId.toString());
-            message.setText("Ваш ответ записан\n```\n"
-                    + update.getMessage().getText()
-            +"\n```");
 
             try {
                 execute(message);
@@ -76,22 +66,6 @@ public class MyTelegramBot extends TelegramLongPollingBot {
             }
         }
     }
-
-    public void broadcastMessage(String text) {
-        List<UserChat> users = userChatRepository.findAll();
-        for (UserChat user : users) {
-            SendMessage message = new SendMessage();
-            message.setChatId(user.getChatId().toString());
-            message.setText(text);
-
-            try {
-                execute(message);
-            } catch (TelegramApiException e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
 
     public MyTelegramBot(@Value("${telegram.bot.token}") String botToken) {
         super(botToken);

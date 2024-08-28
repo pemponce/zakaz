@@ -14,10 +14,19 @@ public class Message {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String username;
+    @JoinColumn(table = "user_chat")
+    private Long userId;
+
+    @JoinColumn(table = "user_chat")
+    private Long chatId;
+
+    @JoinColumn(table = "users")
+    private String userName;
 
     @Column(name = "response_message")
     private String response_message;
+
+//    private String question;
 
     private String time;
 
