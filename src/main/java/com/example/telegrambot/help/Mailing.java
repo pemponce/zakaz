@@ -2,8 +2,8 @@ package com.example.telegrambot.help;
 
 import com.example.telegrambot.bot.MyTelegramBot;
 import com.example.telegrambot.model.UserChat;
-import com.example.telegrambot.quesionsEnum.Questions;
 import com.example.telegrambot.repository.UserChatRepository;
+import com.example.telegrambot.service.impl.QuestionsServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -21,15 +21,18 @@ public class Mailing {
     @Autowired
     private UserChatRepository userChatRepository;
 
-    private int questionIndex = 1;
+    @Autowired
+    private QuestionsServiceImpl questionsService;
+
+    private long questionIndex = 1;
 
     @Scheduled(cron = "0 50 23 * * *")  // Запланировано на 13:40 каждый день
     public void sendDailyMessage() {
-        if (questionIndex > Questions.values().length) {
+        if (questionIndex > questionsService.getQuestionsLength()) {
             questionIndex = 1;
         }
 
-        String question = Questions.getQuestionViaValue(questionIndex);
+        String question = questionsService.getQuestion(questionIndex);
         questionIndex++;
 
         broadcastMessage(question);
