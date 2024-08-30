@@ -1,6 +1,7 @@
 package com.example.telegrambot.help;
 
 import com.example.telegrambot.bot.MyTelegramBot;
+import com.example.telegrambot.model.Questions;
 import com.example.telegrambot.model.UserChat;
 import com.example.telegrambot.repository.UserChatRepository;
 import com.example.telegrambot.service.impl.QuestionsServiceImpl;
@@ -26,17 +27,54 @@ public class Mailing {
 
     private long questionIndex = 1;
 
-    @Scheduled(cron = "0 50 23 * * *")  // Запланировано на 13:40 каждый день
+//    @Scheduled(cron = "0 30 18 * * *")  // Запланировано на 13:40 каждый день
+//    public void sendDailyMessage() {
+//        questionsService.getQuestion(questionIndex).setActive(true);
+//
+//        if (questionIndex >= questionsService.getQuestionsLength()) {
+//            questionIndex = 1;
+//            questionsService.getQuestion(questionsService.getQuestionsLength()).setActive(false);
+//        } else {
+//            questionsService.getQuestion(questionIndex).setActive(false);
+//        }
+//        String question = questionsService.getQuestion(questionIndex).toString();
+//
+//        questionIndex++;
+//
+//        broadcastMessage(question);
+//    }
+
+    @Scheduled(cron = "0 0/1 * * * *")
     public void sendDailyMessage() {
+
+        // Деактивируем предыдущий вопрос
+        if (questionIndex > 1) {
+            Questions prevQuestion = questionsService.getQuestion(questionIndex - 1);
+            prevQuestion.setActive(false);
+            questionsService.saveQuestion(prevQuestion);
+        } else {
+            Questions prevQuestion = questionsService.getQuestion(questionsService.getQuestionsLength());
+            prevQuestion.setActive(false);
+            questionsService.saveQuestion(prevQuestion);
+        }
+        // Получаем текущий вопрос и активируем его
+        Questions currentQuestion = questionsService.getQuestion(questionIndex);
+        currentQuestion.setActive(true);
+
+        // Отправляем сообщение
+        String question = currentQuestion.getQuestion();
+        broadcastMessage(question);
+
+        // Увеличиваем индекс вопроса
+        questionIndex++;
+
+        // Сбрасываем индекс, если он превышает количество вопросов
         if (questionIndex > questionsService.getQuestionsLength()) {
             questionIndex = 1;
         }
-
-        String question = questionsService.getQuestion(questionIndex);
-        questionIndex++;
-
-        broadcastMessage(question);
+        questionsService.saveQuestion(currentQuestion);
     }
+
 
     public void broadcastMessage(String text) {
         List<UserChat> users = userChatRepository.findAll();
@@ -47,7 +85,11 @@ public class Mailing {
 
             try {
                 myTelegramBot.execute(message);
+                System.out.println("Сообщение отправлено пользователю: " + user.getChatId()); // Логирование отправки
+
             } catch (TelegramApiException e) {
+                System.err.println("Ошибка при отправке сообщения пользователю: " + user.getChatId()); // Логирование ошибки
+
                 e.printStackTrace();
             }
         }

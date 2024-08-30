@@ -1,9 +1,7 @@
 package com.example.telegrambot.bot;
 
 import com.example.telegrambot.command.AdminPanel;
-import com.example.telegrambot.model.Message;
 import com.example.telegrambot.model.Users;
-import com.example.telegrambot.repository.BotMessageRepository;
 import com.example.telegrambot.repository.MessageRepository;
 import com.example.telegrambot.repository.UserChatRepository;
 import com.example.telegrambot.repository.UserRepository;
@@ -14,9 +12,6 @@ import com.example.telegrambot.service.impl.UserServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.telegram.abilitybots.api.bot.BaseAbilityBot;
-import org.telegram.abilitybots.api.objects.Flag;
-import org.telegram.abilitybots.api.objects.Reply;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
@@ -24,9 +19,6 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.BiConsumer;
-
-import static org.telegram.abilitybots.api.util.AbilityUtils.getChatId;
 
 
 @Component
@@ -39,16 +31,12 @@ public class MyTelegramBot extends TelegramLongPollingBot {
     @Autowired
     private UserRepository userRepository;
     @Autowired
-    private MessageRepository messageRepository;
-    @Autowired
-    private BotMessageRepository botMessageRepository;
-    @Autowired
     private UserServiceImpl userService;
     @Autowired
     private QuestionsService questionsService;
     @Autowired
     private MessageService messageService;
-    private Map<Long, String> userStates = new HashMap<>();
+    private final Map<Long, String> userStates = new HashMap<>();
 
 
 
