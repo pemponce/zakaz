@@ -26,7 +26,7 @@ public class Message {
     @Column(name = "response_message")
     private String response_message;
 
-//    private String question;
+    private String question;
 
     private String time;
 

@@ -29,6 +29,7 @@ public class MessageServiceImpl implements MessageService {
                 .response_message(update.getMessage().getText())
                 .time(formattedTime)
                 .build();
+
         messageRepository.save(saveMessage);
     }
 }

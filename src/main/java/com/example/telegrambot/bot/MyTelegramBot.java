@@ -1,7 +1,5 @@
 package com.example.telegrambot.bot;
 
-import com.example.telegrambot.help.Mailing;
-import com.example.telegrambot.model.UserChat;
 import com.example.telegrambot.model.Users;
 import com.example.telegrambot.repository.BotMessageRepository;
 import com.example.telegrambot.repository.MessageRepository;
@@ -9,7 +7,7 @@ import com.example.telegrambot.repository.UserChatRepository;
 import com.example.telegrambot.repository.UserRepository;
 import com.example.telegrambot.service.MessageService;
 import com.example.telegrambot.service.impl.UserServiceImpl;
-import jakarta.annotation.PostConstruct;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -18,10 +16,6 @@ import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
-import java.time.LocalTime;
-import java.util.List;
-import java.util.Timer;
-import java.util.TimerTask;
 
 
 @Component

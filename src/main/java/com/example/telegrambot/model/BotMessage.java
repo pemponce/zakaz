@@ -21,6 +21,6 @@ public class BotMessage {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-//    private List question;
+    private List question;
 
 }

@@ -2,48 +2,37 @@ package com.example.telegrambot.help;
 
 import com.example.telegrambot.bot.MyTelegramBot;
 import com.example.telegrambot.model.UserChat;
+import com.example.telegrambot.quesionsEnum.Questions;
 import com.example.telegrambot.repository.UserChatRepository;
-import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.telegram.telegrambots.meta.TelegramBotsApi;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
-import java.time.LocalTime;
 import java.util.List;
-import java.util.Timer;
-import java.util.TimerTask;
 
 @Component
 public class Mailing {
+
     @Autowired
     private MyTelegramBot myTelegramBot;
 
     @Autowired
     private UserChatRepository userChatRepository;
 
+    private int questionIndex = 1;
 
-    @PostConstruct
-    public void init() {
-        sendDailyMessage();
-    }
-
+    @Scheduled(cron = "0 50 23 * * *")  // Запланировано на 13:40 каждый день
     public void sendDailyMessage() {
-        Timer timer = new Timer();
-        TimerTask task = new TimerTask() {
-            @Override
-            public void run() {
-                LocalTime now = LocalTime.now();
-                if (now.getHour() == 4 && now.getMinute() == 9) {
-                    broadcastMessage("Это ежедневное сообщение!");
+        if (questionIndex > Questions.values().length) {
+            questionIndex = 1;
+        }
 
-                    this.cancel();
-                    timer.cancel();
-                }
-            }
-        };
-        timer.scheduleAtFixedRate(task, 0, 600);
+        String question = Questions.getQuestionViaValue(questionIndex);
+        questionIndex++;
+
+        broadcastMessage(question);
     }
 
     public void broadcastMessage(String text) {
