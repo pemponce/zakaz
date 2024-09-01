@@ -30,13 +30,10 @@ public class Mailing {
     private QuestionsServiceImpl questionsService;
     @Scheduled(cron = "0 0/1 * * * *")
     public void sendDailyMessage() {
+        long questionIndex = 1;
         List<UserChat> users = userChatRepository.findAll();
         for (UserChat user : users) {
             Long chatId = user.getChatId();
-            long questionIndex = user.getCurrentQuestionId() != null ? user.getCurrentQuestionId() : 1;
-            if (questionIndex == questionsService.getQuestionsLength()) {
-                questionIndex = 1;
-            }
             Questions currentQuestion = questionsService.getQuestion(questionIndex);
 
             // Save the current question in the user's state
