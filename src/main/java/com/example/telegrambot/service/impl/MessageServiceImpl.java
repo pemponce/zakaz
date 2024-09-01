@@ -52,7 +52,7 @@ public class MessageServiceImpl implements MessageService {
             );
 
             String spreadsheetId = "181N49nhhplDr52neZNqW_2O4d4Q9QwfXK4oEUsdt1l4"; // Укажи ID своей таблицы
-            String range = "A1";
+            String range = currUser.getUsername() + "!A1";
 
             try {
                 googleSheetsService.addDataToGoogleSheet(spreadsheetId, range, values);

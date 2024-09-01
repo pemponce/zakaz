@@ -1,6 +1,7 @@
 package com.example.telegrambot.bot;
 
 import com.example.telegrambot.command.AdminPanel;
+import com.example.telegrambot.googleSheets.service.GoogleSheetsService;
 import com.example.telegrambot.model.Users;
 import com.example.telegrambot.repository.MessageRepository;
 import com.example.telegrambot.repository.UserChatRepository;
@@ -17,12 +18,17 @@ import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
+import java.io.IOException;
+import java.security.GeneralSecurityException;
 import java.util.HashMap;
 import java.util.Map;
 
 
 @Component
 public class MyTelegramBot extends TelegramLongPollingBot {
+
+    @Value("${google.sheets.spreadsheetId}")
+    private String spreadsheetId;
 
     @Value("${telegram.bot.username}")
     private String botName;
@@ -37,6 +43,8 @@ public class MyTelegramBot extends TelegramLongPollingBot {
     @Autowired
     private MessageService messageService;
     private final Map<Long, String> userStates = new HashMap<>();
+    @Autowired
+    private GoogleSheetsService googleSheetsService;
 
 
 
@@ -48,7 +56,14 @@ public class MyTelegramBot extends TelegramLongPollingBot {
             Users currUser = userRepository.getUsersByUsername(update.getMessage().getFrom().getUserName());
 
             if (!(userChatRepository.existsByChatId(chatId) && userRepository.existsByChatId(chatId))) {
-                userService.createUser(update);
+                Users user = userService.createUser(update);
+
+                try {
+                    googleSheetsService.createSheet(spreadsheetId, user.getUsername());
+                } catch (IOException | GeneralSecurityException e) {
+                    e.printStackTrace();
+                    sendMessage(chatId, "Ошибка при создании листа в Google Sheets.");
+                }
             }
 
             // Получаем текущий статус пользователя
@@ -118,8 +133,6 @@ public class MyTelegramBot extends TelegramLongPollingBot {
             e.printStackTrace();
         }
     }
-
-
 
     public MyTelegramBot(@Value("${telegram.bot.token}") String botToken) {
         super(botToken);

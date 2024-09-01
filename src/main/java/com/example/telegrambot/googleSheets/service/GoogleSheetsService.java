@@ -12,7 +12,7 @@ import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.client.util.store.FileDataStoreFactory;
 import com.google.api.services.sheets.v4.Sheets;
 import com.google.api.services.sheets.v4.SheetsScopes;
-import com.google.api.services.sheets.v4.model.ValueRange;
+import com.google.api.services.sheets.v4.model.*;
 import lombok.SneakyThrows;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -60,4 +60,15 @@ public class GoogleSheetsService {
                 .setValueInputOption("RAW")
                 .execute();
     }
+    public void createSheet(String spreadsheetId, String sheetName) throws IOException, GeneralSecurityException {
+        final Sheets sheetsService = new Sheets.Builder(GoogleNetHttpTransport.newTrustedTransport(), JSON_FACTORY, getCredentials())
+                .setApplicationName(APPLICATION_NAME)
+                .build();
+
+        AddSheetRequest addSheetRequest = new AddSheetRequest().setProperties(new SheetProperties().setTitle(sheetName));
+        Request request = new Request().setAddSheet(addSheetRequest);
+        BatchUpdateSpreadsheetRequest batchRequest = new BatchUpdateSpreadsheetRequest().setRequests(Collections.singletonList(request));
+        sheetsService.spreadsheets().batchUpdate(spreadsheetId, batchRequest).execute();
+    }
+
 }
