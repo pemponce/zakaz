@@ -2,6 +2,8 @@ package com.example.telegrambot.bot;
 
 import com.example.telegrambot.command.AdminPanel;
 import com.example.telegrambot.googleSheets.service.GoogleSheetsService;
+import com.example.telegrambot.model.Questions;
+import com.example.telegrambot.model.UserChat;
 import com.example.telegrambot.model.Users;
 import com.example.telegrambot.repository.MessageRepository;
 import com.example.telegrambot.repository.UserChatRepository;
@@ -55,7 +57,8 @@ public class MyTelegramBot extends TelegramLongPollingBot {
             String text = update.getMessage().getText();
             Users currUser = userRepository.getUsersByUsername(update.getMessage().getFrom().getUserName());
 
-            if (!(userChatRepository.existsByChatId(chatId) && userRepository.existsByChatId(chatId))) {
+            // Check if the user exists, if not, create and register them
+            if (!userChatRepository.existsByChatId(chatId) && !userRepository.existsByChatId(chatId)) {
                 Users user = userService.createUser(update);
 
                 try {
@@ -66,43 +69,69 @@ public class MyTelegramBot extends TelegramLongPollingBot {
                 }
             }
 
-            // Получаем текущий статус пользователя
-            String userState = userStates.getOrDefault(chatId, "");
+            // Admin panel handling
+            if ("/admin".equals(text)) {
+                sendAdminPanel(chatId);
+                return;
+            }
 
+            // User state management (question-response handling)
+            UserChat user = userChatRepository.getUserChatByChatId(chatId);
+            if (user.isWaitingForResponse()) {
+                // Save the user's response
+                messageService.sendMessage(update, currUser);
+                sendMessage(chatId, "Ваш ответ записан\n```\n" + text + "\n```");
+
+                // Move to the next question or finish
+                long nextQuestionIndex = user.getCurrentQuestionId() + 1;
+                if (nextQuestionIndex <= questionsService.getQuestionsLength()) {
+                    Questions nextQuestion = questionsService.getQuestion(nextQuestionIndex);
+                    user.setCurrentQuestionId(nextQuestion.getId());
+                    user.setWaitingForResponse(true);
+                    userChatRepository.save(user);
+
+                    // Send the next question
+                    sendMessage(chatId, nextQuestion.getQuestion());
+                } else {
+                    // All questions answered
+                    user.setWaitingForResponse(false);
+                    user.setCurrentQuestionId(1L);
+                    userChatRepository.save(user);
+                    sendMessage(chatId, "Спасибо! Вы ответили на все вопросы.");
+                }
+                return;
+            }
+
+            // Admin functionality handling
+            String userState = userStates.getOrDefault(chatId, "");
             switch (userState) {
                 case "WAITING_FOR_NEW_QUESTION":
-                    // Логика добавления вопроса
+                    // Logic for adding a question
                     questionsService.createQuestion(text);
                     sendMessage(chatId, "Вопрос \"" + text + "\" записан!");
-                    userStates.remove(chatId); // Сбрасываем статус
+                    userStates.remove(chatId); // Reset state
                     break;
-                case "WAITING_FOR_QUESTION_TO_DELETE":
-                    // Логика удаления вопроса
-//                    questionsService.deleteQuestion(text);
-                    sendMessage(chatId, "Вопрос \"" + text + "\" удален!");
-                    userStates.remove(chatId); // Сбрасываем статус
-                    break;
-                default:
-                    if ("/admin".equals(text)) {
-                        sendAdminPanel(chatId);
-                    } else if ("Добавить вопрос".equals(text)) {
 
+                case "WAITING_FOR_QUESTION_TO_DELETE":
+                    // Logic for deleting a question
+//                    questionsService.delete(text);
+                    sendMessage(chatId, "Вопрос \"" + text + "\" удален!");
+                    userStates.remove(chatId); // Reset state
+                    break;
+
+                default:
+                    if ("Добавить вопрос".equals(text)) {
                         sendMessage(chatId, "Пожалуйста, введите новый вопрос:");
                         userStates.put(chatId, "WAITING_FOR_NEW_QUESTION");
-
                     } else if ("Вывести все вопросы".equals(text)) {
-
                         sendMessage(chatId, "Вот список всех вопросов:");
-                        sendMessage(chatId, String.valueOf(questionsService.getAllQuestions()));
-
+                        sendMessage(chatId, questionsService.getAllQuestions().toString());
                     } else if ("Удалить вопрос".equals(text)) {
-
                         sendMessage(chatId, "Введите вопрос, который хотите удалить:");
                         userStates.put(chatId, "WAITING_FOR_QUESTION_TO_DELETE");
-
                     } else {
-                        messageService.sendMessage(update, currUser);
-                        sendMessage(chatId, "Ваш ответ записан\n```\n" + text + "\n```");
+                        // Default handling for messages that aren't admin-related
+                        sendMessage(chatId, "Команда не распознана. Пожалуйста, используйте доступные команды.");
                     }
                     break;
             }

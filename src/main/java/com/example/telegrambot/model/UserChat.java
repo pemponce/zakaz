@@ -23,4 +23,7 @@ public class UserChat {
 
     private Long chatId;
 
+    private Long currentQuestionId;
+
+    private boolean waitingForResponse;
 }

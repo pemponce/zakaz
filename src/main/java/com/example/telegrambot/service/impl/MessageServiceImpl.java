@@ -6,6 +6,7 @@ import com.example.telegrambot.model.Message;
 import com.example.telegrambot.model.Questions;
 import com.example.telegrambot.model.Users;
 import com.example.telegrambot.repository.MessageRepository;
+import com.example.telegrambot.repository.UserChatRepository;
 import com.example.telegrambot.service.MessageService;
 import com.example.telegrambot.service.QuestionsService;
 import lombok.AllArgsConstructor;
@@ -25,15 +26,17 @@ public class MessageServiceImpl implements MessageService {
     private final MessageRepository messageRepository;
     private final QuestionsService questionsService;
 
+    private final UserChatRepository userChatRepository;
+
     @Override
     public void sendMessage(Update update, Users currUser) {
         String formattedTime = DateTimeFormatterExample.formatDateTime(LocalDateTime.now());
 
         // Получаем активный вопрос
-        Optional<Questions> activeQuestionOpt = questionsService.findActiveQuestion();
+        Long questionId = userChatRepository.getUserChatByChatId(currUser.getChatId()).getCurrentQuestionId();
 
-        if (activeQuestionOpt.isPresent()) {
-            String questionText = activeQuestionOpt.get().getQuestion();
+        if (questionId!=null) {
+            String questionText = questionsService.getQuestion(questionId).getQuestion();
 
             Message saveMessage = Message.builder()
                     .userId(currUser.getId())
