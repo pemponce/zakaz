@@ -27,27 +27,9 @@ public class Mailing {
 
     private long questionIndex = 1;
 
-//    @Scheduled(cron = "0 30 18 * * *")  // Запланировано на 13:40 каждый день
-//    public void sendDailyMessage() {
-//        questionsService.getQuestion(questionIndex).setActive(true);
-//
-//        if (questionIndex >= questionsService.getQuestionsLength()) {
-//            questionIndex = 1;
-//            questionsService.getQuestion(questionsService.getQuestionsLength()).setActive(false);
-//        } else {
-//            questionsService.getQuestion(questionIndex).setActive(false);
-//        }
-//        String question = questionsService.getQuestion(questionIndex).toString();
-//
-//        questionIndex++;
-//
-//        broadcastMessage(question);
-//    }
-
     @Scheduled(cron = "0 0/1 * * * *")
     public void sendDailyMessage() {
 
-        // Деактивируем предыдущий вопрос
         if (questionIndex > 1) {
             Questions prevQuestion = questionsService.getQuestion(questionIndex - 1);
             prevQuestion.setActive(false);
@@ -57,7 +39,6 @@ public class Mailing {
             prevQuestion.setActive(false);
             questionsService.saveQuestion(prevQuestion);
         }
-        // Получаем текущий вопрос и активируем его
         Questions currentQuestion = questionsService.getQuestion(questionIndex);
         currentQuestion.setActive(true);
 
@@ -65,10 +46,8 @@ public class Mailing {
         String question = currentQuestion.getQuestion();
         broadcastMessage(question);
 
-        // Увеличиваем индекс вопроса
         questionIndex++;
 
-        // Сбрасываем индекс, если он превышает количество вопросов
         if (questionIndex > questionsService.getQuestionsLength()) {
             questionIndex = 1;
         }
