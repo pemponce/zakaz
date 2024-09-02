@@ -54,6 +54,19 @@ public class MyTelegramBot extends TelegramLongPollingBot {
             String text = update.getMessage().getText();
             Users currUser = userRepository.getUsersByUsername(update.getMessage().getFrom().getUserName());
 
+
+            if (!userChatRepository.existsByChatId(chatId) && !userRepository.existsByChatId(chatId)) {
+                Users user = userService.createUser(update);
+
+                try {
+                    googleSheetsService.createSheet(spreadsheetId, user.getUsername());
+                    sendWelcomeMessage(chatId);
+                } catch (IOException | GeneralSecurityException e) {
+                    e.printStackTrace();
+                    sendMessage(chatId, "Ошибка при создании листа в Google Sheets.");
+                }
+            }
+
             // Check if the user exists, if not, create and register them
             if (!userChatRepository.existsByChatId(chatId) && !userRepository.existsByChatId(chatId)) {
                 Users user = userService.createUser(update);
@@ -116,7 +129,7 @@ public class MyTelegramBot extends TelegramLongPollingBot {
                         if (questionsService.createQuestion(text)) {
                             sendMessage(chatId, "Вопрос \"" + text + "\" записан!");
                         } else {
-                            sendMessage(chatId, "Вопрос уже сужествует");
+                            sendMessage(chatId, "Вопрос уже существует");
                         }
                     } else {
                         sendMessage(chatId, "Вопрос не может быть пустым");
@@ -126,7 +139,6 @@ public class MyTelegramBot extends TelegramLongPollingBot {
 
                 case "WAITING_FOR_QUESTION_TO_DELETE":
                     // Logic for deleting a question
-//                    questionsService.delete(text);
                     questionsService.deleteQuestion(text);
                     sendMessage(chatId, "Вопрос \"" + text + "\" удален!");
                     userStates.remove(chatId); // Reset state
@@ -161,6 +173,11 @@ public class MyTelegramBot extends TelegramLongPollingBot {
         } catch (TelegramApiException e) {
             e.printStackTrace();
         }
+    }
+
+    private void sendWelcomeMessage(Long chatId) {
+        String welcomeText = "Привет! Добро пожаловать в нашего бота. Вы можете начать работу, нажав на кнопки в меню.";
+        sendMessage(chatId, welcomeText);
     }
 
     private void sendMessage(Long chatId, String text) {
