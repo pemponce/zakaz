@@ -107,14 +107,22 @@ public class MyTelegramBot extends TelegramLongPollingBot {
             switch (userState) {
                 case "WAITING_FOR_NEW_QUESTION":
                     // Logic for adding a question
-                    questionsService.createQuestion(text);
-                    sendMessage(chatId, "Вопрос \"" + text + "\" записан!");
+                    if (!text.equals("")) {
+                        if (questionsService.createQuestion(text)) {
+                            sendMessage(chatId, "Вопрос \"" + text + "\" записан!");
+                        } else {
+                            sendMessage(chatId, "Вопрос уже сужествует");
+                        }
+                    } else {
+                        sendMessage(chatId, "Вопрос не может быть пустым");
+                    }
                     userStates.remove(chatId); // Reset state
                     break;
 
                 case "WAITING_FOR_QUESTION_TO_DELETE":
                     // Logic for deleting a question
 //                    questionsService.delete(text);
+                    questionsService.deleteQuestion(text);
                     sendMessage(chatId, "Вопрос \"" + text + "\" удален!");
                     userStates.remove(chatId); // Reset state
                     break;

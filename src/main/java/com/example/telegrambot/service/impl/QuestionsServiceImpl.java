@@ -28,12 +28,25 @@ public class QuestionsServiceImpl implements QuestionsService {
     }
 
     @Override
-    public Questions createQuestion(String question) {
-        Questions newQuestion = Questions.builder()
-                .question(question)
-                .active(false)
-                .build();
-        return questionsRepository.save(newQuestion);
+    public boolean createQuestion(String question) {
+        boolean flag = false;
+        if (!questionsRepository.existsByQuestion(question) || questionsRepository.findAll().isEmpty()) {
+            Questions newQuestion = Questions.builder()
+                    .question(question)
+                    .active(false)
+                    .build();
+            questionsRepository.save(newQuestion);
+            flag = true;
+        }
+        return flag;
+    }
+
+    @Override
+    public void deleteQuestion(String question) {
+
+        long questionId = questionsRepository.getQuestionsByQuestion(question).getId();
+
+        questionsRepository.deleteById(questionId);
     }
 
     @Override
@@ -41,7 +54,7 @@ public class QuestionsServiceImpl implements QuestionsService {
         String res = "";
         List<Questions> questions = new ArrayList<>(questionsRepository.findAll());
         int counter = 1;
-        for(Questions question:questions) {
+        for (Questions question : questions) {
             res += counter + " - " + question.getQuestion() + "\n";
             counter++;
         }
@@ -55,7 +68,6 @@ public class QuestionsServiceImpl implements QuestionsService {
 
     @Override
     public void saveQuestion(Questions question) {
-        // Сохранение вопроса в базе данных
         questionsRepository.save(question);
     }
 

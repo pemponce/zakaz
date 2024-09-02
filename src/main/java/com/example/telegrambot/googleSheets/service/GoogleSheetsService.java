@@ -25,7 +25,6 @@ import java.util.List;
 @Service
 public class GoogleSheetsService {
 
-//    @Value(value = "${spring.application.name}")
     private static final String APPLICATION_NAME = "telegramBot";
     private static final JsonFactory JSON_FACTORY = GsonFactory.getDefaultInstance();
     private static final String TOKENS_DIRECTORY_PATH = "tokens";
