@@ -16,6 +16,10 @@ public interface QuestionsRepository extends JpaRepository<Questions, Long> {
     Questions getQuestionsById(Long id);
     @Query("SELECT q FROM Questions q")
     List<Questions> getAllQuestions();
+    @Query("SELECT MAX(id) AS max_id FROM Questions")
+    Long getMaxId();
+    @Query("SELECT MIN(id) AS min_id FROM Questions")
+    Long getMinId();
     Optional<Questions> findFirstByActiveTrue();
     Questions getQuestionsByQuestion(String question);
     void deleteById(Long questionId);

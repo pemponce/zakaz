@@ -5,7 +5,6 @@ import com.example.telegrambot.googleSheets.service.GoogleSheetsService;
 import com.example.telegrambot.model.Questions;
 import com.example.telegrambot.model.UserChat;
 import com.example.telegrambot.model.Users;
-import com.example.telegrambot.repository.MessageRepository;
 import com.example.telegrambot.repository.UserChatRepository;
 import com.example.telegrambot.repository.UserRepository;
 import com.example.telegrambot.service.MessageService;
@@ -22,8 +21,7 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 
 @Component
@@ -47,7 +45,6 @@ public class MyTelegramBot extends TelegramLongPollingBot {
     private final Map<Long, String> userStates = new HashMap<>();
     @Autowired
     private GoogleSheetsService googleSheetsService;
-
 
 
     @Override
@@ -75,27 +72,35 @@ public class MyTelegramBot extends TelegramLongPollingBot {
                 return;
             }
 
-            // User state management (question-response handling)
             UserChat user = userChatRepository.getUserChatByChatId(chatId);
+            List<Questions> questionsList = new ArrayList<>(questionsService.getAll());
+
             if (user.isWaitingForResponse()) {
-                // Save the user's response
+
                 messageService.sendMessage(update, currUser);
                 sendMessage(chatId, "Ваш ответ записан\n```\n" + text + "\n```");
 
-                // Move to the next question or finish
-                long nextQuestionIndex = user.getCurrentQuestionId() + 1;
-                if (nextQuestionIndex <= questionsService.getQuestionsLength()) {
-                    Questions nextQuestion = questionsService.getQuestion(nextQuestionIndex);
+                long currentQuestionId = user.getCurrentQuestionId();
+                long maxId = questionsService.getMaxId();
+                long minId = questionsService.getMinId();
+
+                Questions nextQuestion = null;
+
+                for (Questions question : questionsList) {
+                    if (question.getId() > currentQuestionId && question.getId() <= maxId) {
+                        nextQuestion = question;
+                        break;
+                    }
+                }
+
+                if (nextQuestion != null) {
                     user.setCurrentQuestionId(nextQuestion.getId());
                     user.setWaitingForResponse(true);
                     userChatRepository.save(user);
-
-                    // Send the next question
                     sendMessage(chatId, nextQuestion.getQuestion());
                 } else {
-                    // All questions answered
                     user.setWaitingForResponse(false);
-                    user.setCurrentQuestionId(1L);
+                    user.setCurrentQuestionId(minId);
                     userChatRepository.save(user);
                     sendMessage(chatId, "Спасибо! Вы ответили на все вопросы.");
                 }
@@ -133,13 +138,12 @@ public class MyTelegramBot extends TelegramLongPollingBot {
                         userStates.put(chatId, "WAITING_FOR_NEW_QUESTION");
                     } else if ("Вывести все вопросы".equals(text)) {
                         sendMessage(chatId, "Вот список всех вопросов:");
-                        sendMessage(chatId, questionsService.getAllQuestions().toString());
+                        sendMessage(chatId, questionsService.getAllQuestions());
                     } else if ("Удалить вопрос".equals(text)) {
                         sendMessage(chatId, "Введите вопрос, который хотите удалить:");
                         userStates.put(chatId, "WAITING_FOR_QUESTION_TO_DELETE");
                     } else {
-                        // Default handling for messages that aren't admin-related
-                        sendMessage(chatId, "Команда не распознана. Пожалуйста, используйте доступные команды.");
+                        sendMessage(chatId, "Дождитесь 23:50 чтобы ответить на вопросы");
                     }
                     break;
             }

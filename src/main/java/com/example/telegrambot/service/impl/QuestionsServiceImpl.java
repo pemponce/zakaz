@@ -62,6 +62,21 @@ public class QuestionsServiceImpl implements QuestionsService {
     }
 
     @Override
+    public List<Questions> getAll() {
+        return questionsRepository.findAll();
+    }
+
+    @Override
+    public Long getMaxId() {
+        return questionsRepository.getMaxId();
+    }
+
+    @Override
+    public Long getMinId() {
+        return questionsRepository.getMinId();
+    }
+
+    @Override
     public Optional<Questions> findActiveQuestion() {
         return questionsRepository.findFirstByActiveTrue();
     }
