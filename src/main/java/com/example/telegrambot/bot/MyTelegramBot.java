@@ -5,6 +5,7 @@ import com.example.telegrambot.googleSheets.service.GoogleSheetsService;
 import com.example.telegrambot.model.Questions;
 import com.example.telegrambot.model.UserChat;
 import com.example.telegrambot.model.Users;
+import com.example.telegrambot.model.enumRole.Role;
 import com.example.telegrambot.repository.UserChatRepository;
 import com.example.telegrambot.repository.UserRepository;
 import com.example.telegrambot.service.MessageService;
@@ -49,11 +50,11 @@ public class MyTelegramBot extends TelegramLongPollingBot {
 
     @Override
     public void onUpdateReceived(Update update) {
-        if (update.hasMessage() && update.getMessage().hasText()) {
-            Long chatId = update.getMessage().getChatId();
-            String text = update.getMessage().getText();
-            Users currUser = userRepository.getUsersByUsername(update.getMessage().getFrom().getUserName());
+        Long chatId = update.getMessage().getChatId();
+        String text = update.getMessage().getText();
+        Users currUser = userRepository.getUsersByUsername(update.getMessage().getFrom().getUserName());
 
+        if (update.hasMessage() && update.getMessage().hasText()) {
 
             if (!userChatRepository.existsByChatId(chatId) && !userRepository.existsByChatId(chatId)) {
                 Users user = userService.createUser(update);
@@ -67,7 +68,6 @@ public class MyTelegramBot extends TelegramLongPollingBot {
                 }
             }
 
-            // Check if the user exists, if not, create and register them
             if (!userChatRepository.existsByChatId(chatId) && !userRepository.existsByChatId(chatId)) {
                 Users user = userService.createUser(update);
 
@@ -79,10 +79,8 @@ public class MyTelegramBot extends TelegramLongPollingBot {
                 }
             }
 
-            // Admin panel handling
-            if ("/admin".equals(text)) {
-                sendAdminPanel(chatId);
-                return;
+             if (!Role.ADMIN.equals(currUser.getRole()) && text.equals("/admin") ){
+                sendMessage(chatId, "Вы не являетесь админом");
             }
 
             UserChat user = userChatRepository.getUserChatByChatId(chatId);
@@ -120,46 +118,89 @@ public class MyTelegramBot extends TelegramLongPollingBot {
                 return;
             }
 
-            // Admin functionality handling
-            String userState = userStates.getOrDefault(chatId, "");
-            switch (userState) {
-                case "WAITING_FOR_NEW_QUESTION":
-                    // Logic for adding a question
-                    if (!text.equals("")) {
-                        if (questionsService.createQuestion(text)) {
-                            sendMessage(chatId, "Вопрос \"" + text + "\" записан!");
+            if (currUser.getRole().equals(Role.ADMIN)) {
+                if (Role.ADMIN.equals(currUser.getRole()) && text.equals("/admin")) {
+                    sendAdminPanel(chatId);
+                }
+                if (text.startsWith("/setrole")) {
+                    String[] parts = text.split(" ");
+                    if (parts.length == 3) {
+                        String username = parts[1];
+                        String role = parts[2].toLowerCase();
+
+                        if (userService.setRole(username, role)) {
+                            sendMessage(chatId, "Пользователю " + username + " выдана роль " + role);
                         } else {
-                            sendMessage(chatId, "Вопрос уже существует");
+                            sendMessage(chatId, "Ошибка! Такого пользователя или роли не существует!");
                         }
                     } else {
-                        sendMessage(chatId, "Вопрос не может быть пустым");
+                        sendMessage(chatId, "Неправильный формат команды. Используйте: /setrole username role");
                     }
-                    userStates.remove(chatId); // Reset state
-                    break;
+                    return;
+                }
+                if(text.equals("/help")) {
+                    sendMessage(chatId,
+                            """
+                                 /admin - команда доступная только админам. Команда выводит клавиатуру бота с функционалом
+                                 /setrole - команда доступная только админам. Команда предназначена для смены роли другого пользователя, необходимо указать имя пользователя и роль которую хотите присвоить. Писать команду необходимо в таком формате\s
+                                     <code>/setrole username role</code>\s
+                                 где у роли есть 2 параметра (admin,user)
+                                 """);
+                }
 
-                case "WAITING_FOR_QUESTION_TO_DELETE":
-                    // Logic for deleting a question
-                    questionsService.deleteQuestion(text);
-                    sendMessage(chatId, "Вопрос \"" + text + "\" удален!");
-                    userStates.remove(chatId); // Reset state
-                    break;
+                String userState = userStates.getOrDefault(chatId, "");
+                switch (userState) {
+                    case "WAITING_FOR_NEW_QUESTION":
+                        if (!text.equals("")) {
+                            if (questionsService.createQuestion(text)) {
+                                sendMessage(chatId, "Вопрос \"" + text + "\" записан!");
+                            } else {
+                                sendMessage(chatId, "Вопрос уже существует");
+                            }
+                        } else {
+                            sendMessage(chatId, "Вопрос не может быть пустым");
+                        }
+                        userStates.remove(chatId); // Reset state
+                        sendAdminPanel(chatId);
 
-                default:
-                    if ("Добавить вопрос".equals(text)) {
-                        sendMessage(chatId, "Пожалуйста, введите новый вопрос:");
-                        userStates.put(chatId, "WAITING_FOR_NEW_QUESTION");
-                    } else if ("Вывести все вопросы".equals(text)) {
-                        sendMessage(chatId, "Вот список всех вопросов:");
-                        sendMessage(chatId, questionsService.getAllQuestions());
-                    } else if ("Удалить вопрос".equals(text)) {
-                        sendMessage(chatId, "Введите вопрос, который хотите удалить:");
-                        userStates.put(chatId, "WAITING_FOR_QUESTION_TO_DELETE");
-                    } else {
-                        sendMessage(chatId, "Дождитесь 23:50 чтобы ответить на вопросы");
-                    }
-                    break;
+                        break;
+
+                    case "WAITING_FOR_QUESTION_TO_DELETE":
+                        questionsService.deleteQuestion(text);
+                        sendMessage(chatId, "Вопрос \"" + text + "\" удален!");
+                        userStates.remove(chatId);
+                        sendAdminPanel(chatId);
+
+                        break;
+
+                    default:
+                        switch (text) {
+                            case "Добавить вопрос" -> {
+                                sendMessage(chatId, "Пожалуйста, введите новый вопрос:");
+                                userStates.put(chatId, "WAITING_FOR_NEW_QUESTION");
+                            }
+                            case "Вывести все вопросы" -> {
+                                sendMessage(chatId, "Вот список всех вопросов:");
+                                sendMessage(chatId, questionsService.getAllQuestions());
+                                sendAdminPanel(chatId);
+                            }
+                            case "Удалить вопрос" -> {
+                                sendMessage(chatId, "Введите вопрос, который хотите удалить:");
+                                userStates.put(chatId, "WAITING_FOR_QUESTION_TO_DELETE");
+                            }
+                            case "Вывести всех пользователей" -> {
+                                sendMessage(chatId, "Вот список всех пользователей:");
+                                sendMessage(chatId, userService.getAllUsers());
+                                sendAdminPanel(chatId);
+                            }
+                        }
+                        break;
+                }
+            } else {
+                sendMessage(chatId, "Дождитесь 23:50 чтобы ответить на вопросы");
             }
         }
+
     }
 
     private void sendAdminPanel(Long chatId) {
@@ -176,12 +217,14 @@ public class MyTelegramBot extends TelegramLongPollingBot {
     }
 
     private void sendWelcomeMessage(Long chatId) {
-        String welcomeText = "Привет! Добро пожаловать в нашего бота. Вы можете начать работу, нажав на кнопки в меню.";
+        String welcomeText = "Привет! Добро пожаловать в нашего бота. Если вы являетесь админом то напишите /admin," +
+                " после можете ознакомится с командами бота (/help)";
         sendMessage(chatId, welcomeText);
     }
 
     private void sendMessage(Long chatId, String text) {
         SendMessage message = new SendMessage();
+        message.setParseMode("HTML");
         message.setChatId(chatId.toString());
         message.setText(text);
 

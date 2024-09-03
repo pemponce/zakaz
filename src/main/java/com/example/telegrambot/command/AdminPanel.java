@@ -11,10 +11,12 @@ public class AdminPanel {
     public static ReplyKeyboard adminActions() {
         KeyboardRow row1 = new KeyboardRow();
         row1.add("Добавить вопрос");
-        row1.add("Вывести все вопросы");
+        row1.add("Удалить вопрос");
 
         KeyboardRow row2 = new KeyboardRow();
-        row2.add("Удалить вопрос");
+        row2.add("Вывести все вопросы");
+        row2.add("Вывести всех пользователей");
+
 
         List<KeyboardRow> keyboard = new ArrayList<>();
         keyboard.add(row1);

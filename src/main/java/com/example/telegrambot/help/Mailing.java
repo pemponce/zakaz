@@ -4,6 +4,7 @@ import com.example.telegrambot.bot.MyTelegramBot;
 import com.example.telegrambot.model.Questions;
 import com.example.telegrambot.model.UserChat;
 import com.example.telegrambot.model.Users;
+import com.example.telegrambot.model.enumRole.Role;
 import com.example.telegrambot.repository.UserChatRepository;
 import com.example.telegrambot.repository.UserRepository;
 import com.example.telegrambot.service.MessageService;
@@ -22,27 +23,38 @@ public class Mailing {
 
     @Autowired
     private MyTelegramBot myTelegramBot;
-
     @Autowired
     private UserChatRepository userChatRepository;
-
+    @Autowired
+    private UserRepository userRepository;
     @Autowired
     private QuestionsServiceImpl questionsService;
+
     @Scheduled(cron = "0 0/3 * * * *")
     public void sendDailyMessage() {
         long questionIndex = 1;
-        List<UserChat> users = userChatRepository.findAll();
-        for (UserChat user : users) {
-            Long chatId = user.getChatId();
-            Questions currentQuestion = questionsService.getQuestion(questionIndex);
+        List<UserChat> chatUsers = userChatRepository.findAll();
+        for (UserChat chatUser : chatUsers) {
+            Long chatId = chatUser.getChatId();
+            Users user = userRepository.getUsersByChatId(chatId);
 
-            // Save the current question in the user's state
-            user.setCurrentQuestionId(currentQuestion.getId());
-            user.setWaitingForResponse(true);
-            userChatRepository.save(user);
+            if (!user.getRole().equals(Role.ADMIN)) {
+                broadcastMessage(chatId, "Пожалуйста ответьте на все вопросы");
 
-            // Broadcast the question
-            broadcastMessage(chatId, currentQuestion.getQuestion());
+
+                Questions currentQuestion = questionsService.getQuestion(questionIndex);
+
+                // Save the current question in the user's state
+                chatUser.setCurrentQuestionId(currentQuestion.getId());
+                chatUser.setWaitingForResponse(true);
+                userChatRepository.save(chatUser);
+
+                // Broadcast the question
+                broadcastMessage(chatId, currentQuestion.getQuestion());
+            } else {
+                String text = ("Рассылка началась");
+                broadcastMessage(chatId, text);
+            }
         }
     }
 
@@ -60,4 +72,5 @@ public class Mailing {
             e.printStackTrace();
         }
     }
+
 }
