@@ -17,6 +17,8 @@ public class Users {
 
     private String username;
 
+    private int verificationCode;
+    private boolean isVerify;
     private Role role;
 
     @JoinColumn(table = "user_chat")

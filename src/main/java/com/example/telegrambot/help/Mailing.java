@@ -30,7 +30,7 @@ public class Mailing {
     @Autowired
     private QuestionsServiceImpl questionsService;
 
-    @Scheduled(cron = "0 0/3 * * * *")
+    @Scheduled(cron = "0 0/4 * * * *")
     public void sendDailyMessage() {
         long questionIndex = 1;
         List<UserChat> chatUsers = userChatRepository.findAll();

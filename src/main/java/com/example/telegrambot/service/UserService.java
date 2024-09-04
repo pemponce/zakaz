@@ -11,4 +11,6 @@ public interface UserService {
     Users createUser(Update update);
     String getAllUsers();
     boolean setRole(String username, String role);
+    boolean existsByVerificationCode(int code, Users currUser);
+    void verifyUser(int code, Users currUser);
 }

@@ -12,4 +12,6 @@ public interface UserRepository extends JpaRepository<Users, Long> {
     boolean existsByChatId(Long id);
     Users getUsersByUsername(String username);
     Users getUsersByChatId(Long chatId);
+    boolean existsByVerificationCode(int code);
+
 }

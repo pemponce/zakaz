@@ -1,6 +1,7 @@
 package com.example.telegrambot.bot;
 
 import com.example.telegrambot.command.AdminPanel;
+import com.example.telegrambot.command.AuthPanel;
 import com.example.telegrambot.googleSheets.service.GoogleSheetsService;
 import com.example.telegrambot.model.Questions;
 import com.example.telegrambot.model.UserChat;
@@ -56,6 +57,7 @@ public class MyTelegramBot extends TelegramLongPollingBot {
 
         if (update.hasMessage() && update.getMessage().hasText()) {
 
+
             if (!userChatRepository.existsByChatId(chatId) && !userRepository.existsByChatId(chatId)) {
                 Users user = userService.createUser(update);
 
@@ -79,125 +81,151 @@ public class MyTelegramBot extends TelegramLongPollingBot {
                 }
             }
 
-             if (!Role.ADMIN.equals(currUser.getRole()) && text.equals("/admin") ){
-                sendMessage(chatId, "Вы не являетесь админом");
-            }
+            if (currUser.isVerify()) {
 
-            UserChat user = userChatRepository.getUserChatByChatId(chatId);
-            List<Questions> questionsList = new ArrayList<>(questionsService.getAll());
-
-            if (user.isWaitingForResponse()) {
-
-                messageService.sendMessage(update, currUser);
-                sendMessage(chatId, "Ваш ответ записан\n```\n" + text + "\n```");
-
-                long currentQuestionId = user.getCurrentQuestionId();
-                long maxId = questionsService.getMaxId();
-                long minId = questionsService.getMinId();
-
-                Questions nextQuestion = null;
-
-                for (Questions question : questionsList) {
-                    if (question.getId() > currentQuestionId && question.getId() <= maxId) {
-                        nextQuestion = question;
-                        break;
-                    }
+                if (!Role.ADMIN.equals(currUser.getRole()) && text.equals("/admin")) {
+                    sendMessage(chatId, "Вы не являетесь админом");
                 }
 
-                if (nextQuestion != null) {
-                    user.setCurrentQuestionId(nextQuestion.getId());
-                    user.setWaitingForResponse(true);
-                    userChatRepository.save(user);
-                    sendMessage(chatId, nextQuestion.getQuestion());
-                } else {
-                    user.setWaitingForResponse(false);
-                    user.setCurrentQuestionId(minId);
-                    userChatRepository.save(user);
-                    sendMessage(chatId, "Спасибо! Вы ответили на все вопросы.");
-                }
-                return;
-            }
+                UserChat user = userChatRepository.getUserChatByChatId(chatId);
+                List<Questions> questionsList = new ArrayList<>(questionsService.getAll());
 
-            if (currUser.getRole().equals(Role.ADMIN)) {
-                if (Role.ADMIN.equals(currUser.getRole()) && text.equals("/admin")) {
-                    sendAdminPanel(chatId);
-                }
-                if (text.startsWith("/setrole")) {
-                    String[] parts = text.split(" ");
-                    if (parts.length == 3) {
-                        String username = parts[1];
-                        String role = parts[2].toLowerCase();
+                if (user.isWaitingForResponse()) {
 
-                        if (userService.setRole(username, role)) {
-                            sendMessage(chatId, "Пользователю " + username + " выдана роль " + role);
-                        } else {
-                            sendMessage(chatId, "Ошибка! Такого пользователя или роли не существует!");
+                    messageService.sendMessage(update, currUser);
+                    sendMessage(chatId, "Ваш ответ записан\n```\n" + text + "\n```");
+
+                    long currentQuestionId = user.getCurrentQuestionId();
+                    long maxId = questionsService.getMaxId();
+                    long minId = questionsService.getMinId();
+
+                    Questions nextQuestion = null;
+
+                    for (Questions question : questionsList) {
+                        if (question.getId() > currentQuestionId && question.getId() <= maxId) {
+                            nextQuestion = question;
+                            break;
                         }
+                    }
+
+                    if (nextQuestion != null) {
+                        user.setCurrentQuestionId(nextQuestion.getId());
+                        user.setWaitingForResponse(true);
+                        userChatRepository.save(user);
+                        sendMessage(chatId, nextQuestion.getQuestion());
                     } else {
-                        sendMessage(chatId, "Неправильный формат команды. Используйте: /setrole username role");
+                        user.setWaitingForResponse(false);
+                        user.setCurrentQuestionId(minId);
+                        userChatRepository.save(user);
+                        sendMessage(chatId, "Спасибо! Вы ответили на все вопросы.");
                     }
                     return;
                 }
-                if(text.equals("/help")) {
-                    sendMessage(chatId,
-                            """
-                                 /admin - команда доступная только админам. Команда выводит клавиатуру бота с функционалом
-                                 /setrole - команда доступная только админам. Команда предназначена для смены роли другого пользователя, необходимо указать имя пользователя и роль которую хотите присвоить. Писать команду необходимо в таком формате\s
-                                     <code>/setrole username role</code>\s
-                                 где у роли есть 2 параметра (admin,user)
-                                 """);
-                }
 
-                String userState = userStates.getOrDefault(chatId, "");
-                switch (userState) {
-                    case "WAITING_FOR_NEW_QUESTION":
-                        if (!text.equals("")) {
-                            if (questionsService.createQuestion(text)) {
-                                sendMessage(chatId, "Вопрос \"" + text + "\" записан!");
+                if (currUser.getRole().equals(Role.ADMIN)) {
+                    if (Role.ADMIN.equals(currUser.getRole()) && text.equals("/admin")) {
+                        sendAdminPanel(chatId);
+                    }
+                    if (text.startsWith("/setrole")) {
+                        String[] parts = text.split(" ");
+                        if (parts.length == 3) {
+                            String username = parts[1];
+                            String role = parts[2].toLowerCase();
+
+                            if (userService.setRole(username, role)) {
+                                sendMessage(chatId, "Пользователю " + username + " выдана роль " + role);
                             } else {
-                                sendMessage(chatId, "Вопрос уже существует");
+                                sendMessage(chatId, "Ошибка! Такого пользователя или роли не существует!");
                             }
                         } else {
-                            sendMessage(chatId, "Вопрос не может быть пустым");
+                            sendMessage(chatId, "Неправильный формат команды. Используйте: /setrole username role");
                         }
-                        userStates.remove(chatId); // Reset state
-                        sendAdminPanel(chatId);
+                        return;
+                    }
+                    if (text.equals("/help")) {
+                        sendMessage(chatId,
+                                """
+                                        /admin - команда доступная только админам. Команда выводит клавиатуру бота с функционалом
+                                        /setrole - команда доступная только админам. Команда предназначена для смены роли другого пользователя, необходимо указать имя пользователя и роль которую хотите присвоить. Писать команду необходимо в таком формате\s
+                                            <code>/setrole username role</code>\s
+                                        где у роли есть 2 параметра (admin,user)
+                                        """);
+                    }
 
+                    String userState = userStates.getOrDefault(chatId, "");
+                    switch (userState) {
+                        case "WAITING_FOR_NEW_QUESTION":
+                            if (!text.equals("")) {
+                                if (questionsService.createQuestion(text)) {
+                                    sendMessage(chatId, "Вопрос \"" + text + "\" записан!");
+                                } else {
+                                    sendMessage(chatId, "Вопрос уже существует");
+                                }
+                            } else {
+                                sendMessage(chatId, "Вопрос не может быть пустым");
+                            }
+                            userStates.remove(chatId); // Reset state
+                            sendAdminPanel(chatId);
+
+                            break;
+
+                        case "WAITING_FOR_QUESTION_TO_DELETE":
+                            questionsService.deleteQuestion(text);
+                            sendMessage(chatId, "Вопрос \"" + text + "\" удален!");
+                            userStates.remove(chatId);
+                            sendAdminPanel(chatId);
+
+                            break;
+
+                        default:
+                            switch (text) {
+                                case "Добавить вопрос" -> {
+                                    sendMessage(chatId, "Пожалуйста, введите новый вопрос:");
+                                    userStates.put(chatId, "WAITING_FOR_NEW_QUESTION");
+                                }
+                                case "Вывести все вопросы" -> {
+                                    sendMessage(chatId, "Вот список всех вопросов:");
+                                    sendMessage(chatId, questionsService.getAllQuestions());
+                                    sendAdminPanel(chatId);
+                                }
+                                case "Удалить вопрос" -> {
+                                    sendMessage(chatId, "Введите вопрос, который хотите удалить:");
+                                    userStates.put(chatId, "WAITING_FOR_QUESTION_TO_DELETE");
+                                }
+                                case "Вывести всех пользователей" -> {
+                                    sendMessage(chatId, "Вот список всех пользователей:");
+                                    sendMessage(chatId, userService.getAllUsers());
+                                    sendAdminPanel(chatId);
+                                }
+                            }
+                            break;
+                    }
+                } else {
+                    sendMessage(chatId, "Дождитесь 23:50 чтобы ответить на вопросы");
+                }
+            } else {
+                String userState = userStates.getOrDefault(chatId, "");
+                switch (userState) {
+                    case "AuthUser":
+                        if (userService.existsByVerificationCode(Integer.parseInt(text), currUser)) {
+                            userService.verifyUser(Integer.parseInt(text), currUser);
+                            sendMessage(chatId, "Вы успешно авторизовались");
+
+                        } else {
+                            sendMessage(chatId, "Код неверный, пожалуйста запросите код у @...");
+                            sendAuthPanel(chatId);
+                        }
                         break;
-
-                    case "WAITING_FOR_QUESTION_TO_DELETE":
-                        questionsService.deleteQuestion(text);
-                        sendMessage(chatId, "Вопрос \"" + text + "\" удален!");
-                        userStates.remove(chatId);
-                        sendAdminPanel(chatId);
-
-                        break;
-
                     default:
                         switch (text) {
-                            case "Добавить вопрос" -> {
-                                sendMessage(chatId, "Пожалуйста, введите новый вопрос:");
-                                userStates.put(chatId, "WAITING_FOR_NEW_QUESTION");
+                            case "Авторизоваться" -> {
+                                sendMessage(chatId, "Введите 4х значный код");
+                                userStates.put(chatId, "AuthUser");
                             }
-                            case "Вывести все вопросы" -> {
-                                sendMessage(chatId, "Вот список всех вопросов:");
-                                sendMessage(chatId, questionsService.getAllQuestions());
-                                sendAdminPanel(chatId);
-                            }
-                            case "Удалить вопрос" -> {
-                                sendMessage(chatId, "Введите вопрос, который хотите удалить:");
-                                userStates.put(chatId, "WAITING_FOR_QUESTION_TO_DELETE");
-                            }
-                            case "Вывести всех пользователей" -> {
-                                sendMessage(chatId, "Вот список всех пользователей:");
-                                sendMessage(chatId, userService.getAllUsers());
-                                sendAdminPanel(chatId);
-                            }
+                            default -> sendAuthPanel(chatId);
                         }
                         break;
                 }
-            } else {
-                sendMessage(chatId, "Дождитесь 23:50 чтобы ответить на вопросы");
             }
         }
 
@@ -208,6 +236,19 @@ public class MyTelegramBot extends TelegramLongPollingBot {
         message.setChatId(chatId.toString());
         message.setText("Выберите действие:");
         message.setReplyMarkup(AdminPanel.adminActions());
+
+        try {
+            execute(message);
+        } catch (TelegramApiException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void sendAuthPanel(Long chatId) {
+        SendMessage message = new SendMessage();
+        message.setChatId(chatId);
+        message.setText("Вам необходимо авторизироваться, запросите код у @...");
+        message.setReplyMarkup(AuthPanel.authAction());
 
         try {
             execute(message);

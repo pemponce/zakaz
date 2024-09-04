@@ -1,5 +1,6 @@
 package com.example.telegrambot.service.impl;
 
+import com.example.telegrambot.help.GenerateCode;
 import com.example.telegrambot.model.Message;
 import com.example.telegrambot.model.Questions;
 import com.example.telegrambot.model.UserChat;
@@ -22,6 +23,8 @@ import java.util.List;
 public class UserServiceImpl implements UserService {
     private UserChatRepository userChatRepository;
     private UserRepository userRepository;
+    private final GenerateCode generateCode;
+
 
     @Override
     public Users createUser(Update update) {
@@ -31,14 +34,20 @@ public class UserServiceImpl implements UserService {
         userChat.setChatId(chatId);
         userChatRepository.save(userChat);
 
+        int verificationCode = generateCode.generateCode();
+
+
         Users user = Users.builder()
                 .username(update.getMessage().getFrom().getUserName())
+                .verificationCode(verificationCode)
                 .role(Role.USER)
                 .chatId(chatId)
                 .build();
 
         return userRepository.save(user);
     }
+
+
 
     @Override
     public String getAllUsers() {
@@ -76,6 +85,17 @@ public class UserServiceImpl implements UserService {
         }
 
         return flag;
+    }
+
+    @Override
+    public boolean existsByVerificationCode(int code, Users currUser) {
+        return userRepository.existsByVerificationCode(code) && currUser.getVerificationCode() == code ;
+    }
+
+    @Override
+    public void verifyUser(int code, Users currUser) {
+        currUser.setVerify(true);
+        userRepository.save(currUser);
     }
 
 }
