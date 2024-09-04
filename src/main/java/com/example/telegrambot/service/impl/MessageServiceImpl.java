@@ -29,7 +29,7 @@ public class MessageServiceImpl implements MessageService {
     private final UserChatRepository userChatRepository;
 
     @Override
-    public void sendMessage(Update update, Users currUser) {
+    public void saveMessage(Update update, Users currUser) {
         String formattedTime = DateTimeFormatterExample.formatDateTime(LocalDateTime.now());
 
         // Получаем активный вопрос

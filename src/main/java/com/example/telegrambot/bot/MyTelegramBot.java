@@ -92,7 +92,7 @@ public class MyTelegramBot extends TelegramLongPollingBot {
 
                 if (user.isWaitingForResponse()) {
 
-                    messageService.sendMessage(update, currUser);
+                    messageService.saveMessage(update, currUser);
                     sendMessage(chatId, "Ваш ответ записан\n```\n" + text + "\n```");
 
                     long currentQuestionId = user.getCurrentQuestionId();
