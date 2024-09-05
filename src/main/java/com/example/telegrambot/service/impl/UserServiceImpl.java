@@ -1,5 +1,6 @@
 package com.example.telegrambot.service.impl;
 
+import com.example.telegrambot.googleSheets.service.GoogleSheetsService;
 import com.example.telegrambot.help.GenerateCode;
 import com.example.telegrambot.model.Message;
 import com.example.telegrambot.model.Questions;
@@ -21,6 +22,8 @@ import java.util.List;
 @Service
 @AllArgsConstructor
 public class UserServiceImpl implements UserService {
+    private GoogleSheetsService googleSheetsService;
+
     private UserChatRepository userChatRepository;
     private UserRepository userRepository;
     private final GenerateCode generateCode;
@@ -43,6 +46,22 @@ public class UserServiceImpl implements UserService {
                 .role(Role.USER)
                 .chatId(chatId)
                 .build();
+
+        List<List<Object>> values = List.of(
+                List.of(user.getUsername(), user.getVerificationCode())
+        );
+
+        String spreadsheetId = "181N49nhhplDr52neZNqW_2O4d4Q9QwfXK4oEUsdt1l4"; // Укажи ID своей таблицы
+        String range =  "usersCode!A1";
+
+        try {
+            googleSheetsService.addDataToGoogleSheet(spreadsheetId, range, values);
+            System.out.println("Сообщение отправлено в Google Sheets!");
+        } catch (Exception e) {
+            System.err.println("Ошибка при отправке данных в Google Sheets");
+            e.printStackTrace();
+        }
+
 
         return userRepository.save(user);
     }

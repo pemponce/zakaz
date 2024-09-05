@@ -30,7 +30,7 @@ public class Mailing {
     @Autowired
     private QuestionsServiceImpl questionsService;
 
-    @Scheduled(cron = "0 0/4 * * * *")
+    @Scheduled(cron = "0 0/1 * * * *")
     public void sendDailyMessage() {
         long questionIndex = 1;
         List<UserChat> chatUsers = userChatRepository.findAll();
@@ -38,7 +38,7 @@ public class Mailing {
             Long chatId = chatUser.getChatId();
             Users user = userRepository.getUsersByChatId(chatId);
 
-            if (!user.getRole().equals(Role.ADMIN)) {
+            if (!user.getRole().equals(Role.ADMIN) && user.isVerify()) {
                 broadcastMessage(chatId, "Пожалуйста ответьте на все вопросы");
 
 
@@ -52,8 +52,15 @@ public class Mailing {
                 // Broadcast the question
                 broadcastMessage(chatId, currentQuestion.getQuestion());
             } else {
-                String text = ("Рассылка началась");
-                broadcastMessage(chatId, text);
+                if (!user.isVerify()) {
+                    String text = ("Авторизируйтесь! следующая рассылка через день");
+                    broadcastMessage(chatId, text);
+
+                } else {
+
+                    String text = ("Рассылка началась");
+                    broadcastMessage(chatId, text);
+                }
             }
         }
     }
