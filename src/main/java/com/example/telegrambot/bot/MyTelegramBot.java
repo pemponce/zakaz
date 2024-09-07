@@ -3,6 +3,7 @@ package com.example.telegrambot.bot;
 import com.example.telegrambot.command.AdminPanel;
 import com.example.telegrambot.command.AuthPanel;
 import com.example.telegrambot.googleSheets.service.GoogleSheetsService;
+import com.example.telegrambot.help.Mailing;
 import com.example.telegrambot.model.Questions;
 import com.example.telegrambot.model.UserChat;
 import com.example.telegrambot.model.Users;
@@ -48,7 +49,6 @@ public class MyTelegramBot extends TelegramLongPollingBot {
     @Autowired
     private GoogleSheetsService googleSheetsService;
 
-
     @Override
     public void onUpdateReceived(Update update) {
         Long chatId = update.getMessage().getChatId();
@@ -88,7 +88,12 @@ public class MyTelegramBot extends TelegramLongPollingBot {
                 }
 
                 UserChat user = userChatRepository.getUserChatByChatId(chatId);
-                List<Questions> questionsList = new ArrayList<>(questionsService.getAll());
+                List<Questions> questionsList;
+                if (Mailing.morningQuestion()) {
+                    questionsList = new ArrayList<>(questionsService.getMorningQuestions());
+                } else {
+                    questionsList = new ArrayList<>(questionsService.getAll());
+                }
 
                 if (user.isWaitingForResponse()) {
 
@@ -263,7 +268,7 @@ public class MyTelegramBot extends TelegramLongPollingBot {
         sendMessage(chatId, welcomeText);
     }
 
-    private void sendMessage(Long chatId, String text) {
+    public void sendMessage(Long chatId, String text) {
         SendMessage message = new SendMessage();
         message.setParseMode("HTML");
         message.setChatId(chatId.toString());

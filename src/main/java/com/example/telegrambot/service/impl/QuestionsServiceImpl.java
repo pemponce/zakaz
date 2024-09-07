@@ -33,7 +33,7 @@ public class QuestionsServiceImpl implements QuestionsService {
         if (!questionsRepository.existsByQuestion(question) || questionsRepository.findAll().isEmpty()) {
             Questions newQuestion = Questions.builder()
                     .question(question)
-                    .active(false)
+                    .morning(false)
                     .build();
             questionsRepository.save(newQuestion);
             flag = true;
@@ -76,9 +76,18 @@ public class QuestionsServiceImpl implements QuestionsService {
         return questionsRepository.getMinId();
     }
 
+    public List<Questions> getMorningQuestions() {
+        return questionsRepository.findByMorningTrue();
+    }
+
     @Override
-    public Optional<Questions> findActiveQuestion() {
-        return questionsRepository.findFirstByActiveTrue();
+    public Questions findFirstByMorningTrue() {
+        return questionsRepository.findFirstByMorningTrue();
+    }
+
+    @Override
+    public Questions findFirstByMorningFalse() {
+        return questionsRepository.findFirstByMorningFalse();
     }
 
     @Override

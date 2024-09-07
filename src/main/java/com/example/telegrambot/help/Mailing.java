@@ -13,9 +13,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
-import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Component
@@ -24,16 +24,21 @@ public class Mailing {
     @Autowired
     private MyTelegramBot myTelegramBot;
     @Autowired
+    private MessageService messageService;
+    @Autowired
     private UserChatRepository userChatRepository;
     @Autowired
     private UserRepository userRepository;
     @Autowired
     private QuestionsServiceImpl questionsService;
 
-    @Scheduled(cron = "0 0/1 * * * *")
+    private static boolean status;
+
+    @Scheduled(cron = "0 32 17 * * *")
     public void sendDailyMessage() {
-        long questionIndex = 1;
+        status = false;
         List<UserChat> chatUsers = userChatRepository.findAll();
+
         for (UserChat chatUser : chatUsers) {
             Long chatId = chatUser.getChatId();
             Users user = userRepository.getUsersByChatId(chatId);
@@ -41,28 +46,56 @@ public class Mailing {
             if (!user.getRole().equals(Role.ADMIN) && user.isVerify()) {
                 broadcastMessage(chatId, "Пожалуйста ответьте на все вопросы");
 
-
-                Questions currentQuestion = questionsService.getQuestion(questionIndex);
-
-                // Save the current question in the user's state
+                Questions currentQuestion = questionsService.findFirstByMorningFalse();
                 chatUser.setCurrentQuestionId(currentQuestion.getId());
                 chatUser.setWaitingForResponse(true);
                 userChatRepository.save(chatUser);
 
-                // Broadcast the question
                 broadcastMessage(chatId, currentQuestion.getQuestion());
+
             } else {
                 if (!user.isVerify()) {
-                    String text = ("Авторизируйтесь! следующая рассылка через день");
-                    broadcastMessage(chatId, text);
+                    broadcastMessage(chatId, "Авторизируйтесь! следующая рассылка будет в 10:30");
 
                 } else {
-
-                    String text = ("Рассылка началась");
-                    broadcastMessage(chatId, text);
+                    broadcastMessage(chatId, "Рассылка началась");
                 }
             }
         }
+    }
+
+    @Scheduled(cron = "0 31 17 * * *")
+    public void sendMorningQuestions() {
+        status = true;
+        List<UserChat> chatUsers = userChatRepository.findAll();
+
+        for (UserChat chatUser : chatUsers) {
+            Long chatId = chatUser.getChatId();
+            Users user = userRepository.getUsersByChatId(chatId);
+
+            if (!user.getRole().equals(Role.ADMIN) && user.isVerify()) {
+                broadcastMessage(chatId, "Пожалуйста ответьте на все вопросы");
+
+                Questions currentQuestion = questionsService.findFirstByMorningTrue();
+                chatUser.setCurrentQuestionId(currentQuestion.getId());
+                chatUser.setWaitingForResponse(true);
+                userChatRepository.save(chatUser);
+
+                broadcastMessage(chatId, currentQuestion.getQuestion());
+
+            } else {
+                if (!user.isVerify()) {
+                    broadcastMessage(chatId, "Авторизируйтесь! следующая рассылка будет в 10:30");
+
+                } else {
+                    broadcastMessage(chatId, "Рассылка началась");
+                }
+            }
+        }
+    }
+
+    public static boolean morningQuestion() {
+        return status;
     }
 
     public void broadcastMessage(Long chatId, String text) {
@@ -76,6 +109,19 @@ public class Mailing {
 
         } catch (TelegramApiException e) {
             System.err.println("Ошибка при отправке сообщения пользователю: " + chatId); // Логирование ошибки
+            e.printStackTrace();
+        }
+    }
+
+    private void sendMessage(Long chatId) {
+        SendMessage message = new SendMessage();
+        message.setParseMode("HTML");
+        message.setChatId(chatId.toString());
+        message.setText("Вы не являетесь админом");
+
+        try {
+            myTelegramBot.execute(message);
+        } catch (TelegramApiException e) {
             e.printStackTrace();
         }
     }
