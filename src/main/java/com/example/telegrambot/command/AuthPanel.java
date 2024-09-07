@@ -7,20 +7,14 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.Keyboard
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.example.telegrambot.command.AdminPanel.getReplyKeyboard;
+
 public class AuthPanel {
     public static ReplyKeyboard authAction() {
         KeyboardRow row1 = new KeyboardRow();
         row1.add("Авторизоваться");
 
-        List<KeyboardRow> keyboard = new ArrayList<>();
-        keyboard.add(row1);
-
-        ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
-        keyboardMarkup.setKeyboard(keyboard);
-        keyboardMarkup.setResizeKeyboard(true);
-        keyboardMarkup.setOneTimeKeyboard(true);
-
-        return keyboardMarkup;
+        return getReplyKeyboard(row1);
     }
 
 }

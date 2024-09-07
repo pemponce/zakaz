@@ -148,23 +148,29 @@ public class MyTelegramBot extends TelegramLongPollingBot {
                         return;
                     }
                     if (text.equals("/help")) {
-                        sendMessage(chatId,
-                                """
-                                        /admin - команда доступная только админам. Команда выводит клавиатуру бота с функционалом
-                                        /setrole - команда доступная только админам. Команда предназначена для смены роли другого пользователя, необходимо указать имя пользователя и роль которую хотите присвоить. Писать команду необходимо в таком формате\s
-                                            <code>/setrole username role</code>\s
-                                        где у роли есть 2 параметра (admin,user)
-                                        """);
+                        sendMessage(chatId, """
+                                /admin - команда доступная только админам. Команда выводит клавиатуру бота с функционалом
+                                /setrole - команда доступная только админам. Команда предназначена для смены роли другого пользователя, необходимо указать имя пользователя и роль которую хотите присвоить. Писать команду необходимо в таком формате\s
+                                    <code>/setrole username role</code>\s
+                                где у роли есть 2 параметра (admin,user)
+                                """);
                     }
 
                     String userState = userStates.getOrDefault(chatId, "");
                     switch (userState) {
                         case "WAITING_FOR_NEW_QUESTION":
                             if (!text.equals("")) {
-                                if (questionsService.createQuestion(text)) {
-                                    sendMessage(chatId, "Вопрос \"" + text + "\" записан!");
+                                if (text.equals("Отмена")) {
+                                    sendMessage(chatId, "Отмена действия");
+                                    userStates.remove(chatId); // Сбрасываем состояние
+                                    sendAdminPanel(chatId); // Возвращаем админ-панель
+                                    return;
                                 } else {
-                                    sendMessage(chatId, "Вопрос уже существует");
+                                    if (questionsService.createQuestion(text)) {
+                                        sendMessage(chatId, "Вопрос \"" + text + "\" записан!");
+                                    } else {
+                                        sendMessage(chatId, "Вопрос уже существует");
+                                    }
                                 }
                             } else {
                                 sendMessage(chatId, "Вопрос не может быть пустым");
@@ -175,16 +181,24 @@ public class MyTelegramBot extends TelegramLongPollingBot {
                             break;
 
                         case "WAITING_FOR_QUESTION_TO_DELETE":
-                            questionsService.deleteQuestion(text);
-                            sendMessage(chatId, "Вопрос \"" + text + "\" удален!");
-                            userStates.remove(chatId);
-                            sendAdminPanel(chatId);
+                            if (text.equals("Отмена")) {
+                                sendMessage(chatId, "Отмена действия");
+                                userStates.remove(chatId); // Сбрасываем состояние
+                                sendAdminPanel(chatId); // Возвращаем админ-панель
+                                return;
+                            } else {
+                                questionsService.deleteQuestion(text);
+                                sendMessage(chatId, "Вопрос \"" + text + "\" удален!");
+                                userStates.remove(chatId);
+                                sendAdminPanel(chatId);
+                            }
 
                             break;
 
                         default:
                             switch (text) {
                                 case "Добавить вопрос" -> {
+                                    sendCancelBtn(chatId);
                                     sendMessage(chatId, "Пожалуйста, введите новый вопрос:");
                                     userStates.put(chatId, "WAITING_FOR_NEW_QUESTION");
                                 }
@@ -194,6 +208,8 @@ public class MyTelegramBot extends TelegramLongPollingBot {
                                     sendAdminPanel(chatId);
                                 }
                                 case "Удалить вопрос" -> {
+                                    sendCancelBtn(chatId);
+
                                     sendMessage(chatId, "Введите вопрос, который хотите удалить:");
                                     userStates.put(chatId, "WAITING_FOR_QUESTION_TO_DELETE");
                                 }
@@ -249,6 +265,20 @@ public class MyTelegramBot extends TelegramLongPollingBot {
         }
     }
 
+    private void sendCancelBtn(Long chatId) {
+        SendMessage message = new SendMessage();
+        message.setChatId(chatId.toString());
+        message.setText("Если хотите отменить, нажмите кнопку ниже:");
+        message.setReplyMarkup(AdminPanel.adminCancelBtn());
+
+        try {
+            execute(message);
+        } catch (TelegramApiException e) {
+            e.printStackTrace();
+        }
+    }
+
+
     private void sendAuthPanel(Long chatId) {
         SendMessage message = new SendMessage();
         message.setChatId(chatId);
@@ -263,8 +293,7 @@ public class MyTelegramBot extends TelegramLongPollingBot {
     }
 
     private void sendWelcomeMessage(Long chatId) {
-        String welcomeText = "Привет! Добро пожаловать в нашего бота. Если вы являетесь админом то напишите /admin," +
-                " после можете ознакомится с командами бота (/help)";
+        String welcomeText = "Привет! Добро пожаловать в нашего бота. Если вы являетесь админом то напишите /admin," + " после можете ознакомится с командами бота (/help)";
         sendMessage(chatId, welcomeText);
     }
 

@@ -1,5 +1,6 @@
 package com.example.telegrambot.command;
 
+import org.jetbrains.annotations.NotNull;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboard;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
@@ -21,6 +22,26 @@ public class AdminPanel {
         List<KeyboardRow> keyboard = new ArrayList<>();
         keyboard.add(row1);
         keyboard.add(row2);
+
+        ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
+        keyboardMarkup.setKeyboard(keyboard);
+        keyboardMarkup.setResizeKeyboard(true);
+        keyboardMarkup.setOneTimeKeyboard(false);
+
+        return keyboardMarkup;
+    }
+
+    public static ReplyKeyboard adminCancelBtn() {
+        KeyboardRow row = new KeyboardRow();
+        row.add("Отмена");
+
+        return getReplyKeyboard(row);
+    }
+
+    @NotNull
+    static ReplyKeyboard getReplyKeyboard(KeyboardRow row) {
+        List<KeyboardRow> keyboard = new ArrayList<>();
+        keyboard.add(row);
 
         ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
         keyboardMarkup.setKeyboard(keyboard);
