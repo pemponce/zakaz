@@ -1,8 +1,10 @@
 package com.example.telegrambot.command;
 
 import org.jetbrains.annotations.NotNull;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboard;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 
 import java.util.ArrayList;
@@ -50,4 +52,23 @@ public class AdminPanel {
 
         return keyboardMarkup;
     }
+
+    public static InlineKeyboardMarkup questionTypeButtons(String action) {
+        InlineKeyboardButton normalQuestionsBtn = new InlineKeyboardButton();
+        normalQuestionsBtn.setText("Обычные вопросы");
+        normalQuestionsBtn.setCallbackData(action + "_normal");
+
+        InlineKeyboardButton banQuestionsBtn = new InlineKeyboardButton();
+        banQuestionsBtn.setText("Вопросы для бана");
+        banQuestionsBtn.setCallbackData(action + "_ban");
+
+        List<InlineKeyboardButton> row = List.of(normalQuestionsBtn, banQuestionsBtn);
+        List<List<InlineKeyboardButton>> rows = List.of(row);
+
+        InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
+        markup.setKeyboard(rows);
+
+        return markup;
+    }
+
 }
