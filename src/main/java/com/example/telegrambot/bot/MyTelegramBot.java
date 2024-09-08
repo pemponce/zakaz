@@ -2,6 +2,7 @@ package com.example.telegrambot.bot;
 
 import com.example.telegrambot.command.AdminPanel;
 import com.example.telegrambot.command.AuthPanel;
+import com.example.telegrambot.command.UserPanel;
 import com.example.telegrambot.googleSheets.service.GoogleSheetsService;
 import com.example.telegrambot.help.Mailing;
 import com.example.telegrambot.model.BanQuestions;
@@ -104,6 +105,8 @@ public class MyTelegramBot extends TelegramLongPollingBot {
     private void handleVerifiedUser(String text, Long chatId, Users currUser, Update update) {
         String userState = userStates.getOrDefault(chatId, "");
 
+
+
         if ("WAITING_FOR_NEW_QUESTION".equals(userState)) {
 
             if (text.equals("Отмена")) {
@@ -196,7 +199,13 @@ public class MyTelegramBot extends TelegramLongPollingBot {
                 if (currUser.getRole().equals(Role.ADMIN)) {
                     handleAdminCommands(text, chatId);
                 } else {
-                    sendMessage(chatId, "Дождитесь 23:50 чтобы ответить на вопросы");
+                    if(text.equals("Карту забанили")) {
+                        sendMessage(chatId, "xyu");
+                    } else {
+                        sendMessage(chatId, "Дождитесь 23:50 чтобы ответить на вопросы");
+                        sendUserPanel(chatId);
+
+                    }
                 }
             }
         }
@@ -332,6 +341,19 @@ public class MyTelegramBot extends TelegramLongPollingBot {
         message.setChatId(chatId.toString());
         message.setText("Выберите действие:");
         message.setReplyMarkup(AdminPanel.adminActions());
+
+        try {
+            execute(message);
+        } catch (TelegramApiException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void sendUserPanel(Long chatId) {
+        SendMessage message = new SendMessage();
+        message.setChatId(chatId.toString());
+        message.setText("Если вам заблокировали карту, тыкните на кнопку ниже");
+        message.setReplyMarkup(UserPanel.userActions());
 
         try {
             execute(message);
