@@ -92,7 +92,7 @@ public class MyTelegramBot extends TelegramLongPollingBot {
                 if (Mailing.morningQuestion()) {
                     questionsList = new ArrayList<>(questionsService.getMorningQuestions());
                 } else {
-                    questionsList = new ArrayList<>(questionsService.getAll());
+                    questionsList = new ArrayList<>(questionsService.getNotMorningQuestions());
                 }
 
                 if (user.isWaitingForResponse()) {

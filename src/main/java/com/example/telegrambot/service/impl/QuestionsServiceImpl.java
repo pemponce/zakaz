@@ -81,13 +81,18 @@ public class QuestionsServiceImpl implements QuestionsService {
     }
 
     @Override
+    public List<Questions> getNotMorningQuestions() {
+        return questionsRepository.findByMorningFalse();
+    }
+
+    @Override
     public Questions findFirstByMorningTrue() {
-        return questionsRepository.findFirstByMorningTrue();
+        return questionsRepository.findFirstByMorningTrueOrderByIdAsc();
     }
 
     @Override
     public Questions findFirstByMorningFalse() {
-        return questionsRepository.findFirstByMorningFalse();
+        return questionsRepository.findFirstByMorningFalseOrderByIdAsc();
     }
 
     @Override

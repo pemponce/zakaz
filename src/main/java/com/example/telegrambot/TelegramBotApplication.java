@@ -1,14 +1,41 @@
 package com.example.telegrambot;
 
+import com.example.telegrambot.googleSheets.service.GoogleSheetsService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.scheduling.annotation.EnableScheduling;
+
+import java.io.IOException;
+import java.lang.module.Configuration;
+import java.security.GeneralSecurityException;
 
 @SpringBootApplication
 @EnableScheduling
 public class TelegramBotApplication {
+
+    @Value("${google.sheets.spreadsheetId}")
+    private String spreadsheetId;
+
+    @Autowired
+    private GoogleSheetsService googleSheetsService;
+
     public static void main(String[] args) {
-        SpringApplication.run(TelegramBotApplication.class, args);
+        ConfigurableApplicationContext context = SpringApplication.run(TelegramBotApplication.class, args);
+        TelegramBotApplication app = context.getBean(TelegramBotApplication.class);
+        app.createSheets();
+    }
+
+    public void createSheets() {
+        try {
+            googleSheetsService.createSheet(spreadsheetId, "usersCode");
+            googleSheetsService.createSheet(spreadsheetId, "cardBanned");
+        } catch (IOException | GeneralSecurityException e) {
+            throw new RuntimeException("Ошибка в создании листов, возможно листы уже созданы." +
+                    " Если вы видите это сообщение не переживайте, все скорее всего работает в штатном режиме!");
+        }
     }
 }
 
@@ -20,7 +47,7 @@ public class TelegramBotApplication {
  * Реализовать вывод кодов владльцу бота для пользователей ✅
  * Добавить кнопку "Карту заблочили" в которой будет ряд вопросов на которые надо будет ответить.
  * p.s. при тыканье на эту кнопку ответы записываются в отдельный общий лист. ⁉
- *  - реализовать настройку параметра в вопросе типа утренникй или нет ⁉️
+ *  - реализовать настройку параметра в вопросе типа утренний или нет ⁉️
  *  - попробовать вводить в таблицу по примеру как скинул ильхан ⁉️
  * 1. Сколько симок есть
  * 2. Сколько сберов живых

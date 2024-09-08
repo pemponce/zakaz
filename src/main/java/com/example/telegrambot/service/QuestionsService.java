@@ -15,7 +15,9 @@ public interface QuestionsService {
     Long getMaxId();
     Long getMinId();
     List<Questions> getMorningQuestions();
+    List<Questions> getNotMorningQuestions();
     Questions findFirstByMorningTrue();
     Questions findFirstByMorningFalse();
+
     void saveQuestion(Questions question);
 }
