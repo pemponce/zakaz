@@ -10,6 +10,9 @@ public interface BanQuestionsService {
     BanQuestions getQuestion(Long id);
     void deleteQuestion(String question);
     String getAllQuestions();
+    Long getMaxId();
+    Long getMinId();
+    List<BanQuestions> getAll();
     boolean createQuestion(String question);
     void saveQuestion(BanQuestions question);
 }

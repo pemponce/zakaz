@@ -25,6 +25,7 @@ import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.*;
@@ -60,6 +61,8 @@ public class MyTelegramBot extends TelegramLongPollingBot {
 
     @Autowired
     private GoogleSheetsService googleSheetsService;
+
+    private boolean ban;
 
     public MyTelegramBot(@Value("${telegram.bot.token}") String botToken) {
         super(botToken);
@@ -106,7 +109,6 @@ public class MyTelegramBot extends TelegramLongPollingBot {
         String userState = userStates.getOrDefault(chatId, "");
 
 
-
         if ("WAITING_FOR_NEW_QUESTION".equals(userState)) {
 
             if (text.equals("Отмена")) {
@@ -118,46 +120,43 @@ public class MyTelegramBot extends TelegramLongPollingBot {
             Questions newQuestion = new Questions();
             newQuestion.setQuestion(text);
             questionsService.saveQuestion(newQuestion);
-            sendMessage(chatId, "Новый обычный вопрос добавлен.");
-            userStates.remove(chatId); // Сброс состояния после добавления вопроса
+            sendMessage(chatId, "Новый вопрос добавлен.");
+            userStates.remove(chatId);
             sendAdminPanel(chatId);
         } else if ("WAITING_FOR_NEW_BAN_QUESTION".equals(userState)) {
             if (text.equals("Отмена")) {
                 sendMessage(chatId, "Отмена действия");
-                userStates.remove(chatId); // Сбрасываем состояние
-                sendAdminPanel(chatId); // Возвращаем админ-панель
+                userStates.remove(chatId);
+                sendAdminPanel(chatId);
                 return;
             }
-            // Здесь добавьте логику для добавления нового вопроса для бана
             BanQuestions newBanQuestion = new BanQuestions();
             newBanQuestion.setQuestion(text);
-            banQuestionsService.saveQuestion(newBanQuestion);
+            banQuestionsService.createQuestion(newBanQuestion.getQuestion());
             sendMessage(chatId, "Новый вопрос для бана добавлен.");
-            userStates.remove(chatId); // Сброс состояния после добавления вопроса
+            userStates.remove(chatId);
             sendAdminPanel(chatId);
         } else if ("WAITING_FOR_QUESTION_TO_DELETE".equals(userState)) {
             if (text.equals("Отмена")) {
                 sendMessage(chatId, "Отмена действия");
-                userStates.remove(chatId); // Сбрасываем состояние
-                sendAdminPanel(chatId); // Возвращаем админ-панель
+                userStates.remove(chatId);
+                sendAdminPanel(chatId);
                 return;
             }
-            // Здесь добавьте логику для удаления вопроса
             questionsService.deleteQuestion(text);
-            sendMessage(chatId, "Обычный вопрос удалён.");
-            userStates.remove(chatId); // Сброс состояния после удаления вопроса
+            sendMessage(chatId, "Вопрос удалён.");
+            userStates.remove(chatId);
             sendAdminPanel(chatId);
         } else if ("WAITING_FOR_BAN_QUESTION_TO_DELETE".equals(userState)) {
             if (text.equals("Отмена")) {
                 sendMessage(chatId, "Отмена действия");
-                userStates.remove(chatId); // Сбрасываем состояние
-                sendAdminPanel(chatId); // Возвращаем админ-панель
+                userStates.remove(chatId);
+                sendAdminPanel(chatId);
                 return;
             }
-            // Здесь добавьте логику для удаления вопроса для бана
             banQuestionsService.deleteQuestion(text);
             sendMessage(chatId, "Вопрос для бана удалён.");
-            userStates.remove(chatId); // Сброс состояния после удаления вопроса
+            userStates.remove(chatId);
             sendAdminPanel(chatId);
         } else {
             // Обработка других команд и состояний
@@ -170,44 +169,89 @@ public class MyTelegramBot extends TelegramLongPollingBot {
                         new ArrayList<>(questionsService.getNotMorningQuestions());
 
                 if (user.isWaitingForResponse()) {
-                    messageService.saveMessage(update, currUser, false);
-                    sendMessage(chatId, "Ваш ответ записан\n```\n" + text + "\n```");
-
-                    long currentQuestionId = user.getCurrentQuestionId();
-                    long maxId = questionsService.getMaxId();
-                    long minId = questionsService.getMinId();
-
-                    Questions nextQuestion = questionsList.stream()
-                            .filter(q -> q.getId() > currentQuestionId && q.getId() <= maxId)
-                            .findFirst()
-                            .orElse(null);
-
-                    if (nextQuestion != null) {
-                        user.setCurrentQuestionId(nextQuestion.getId());
-                        user.setWaitingForResponse(true);
-                        userChatRepository.save(user);
-                        sendMessage(chatId, nextQuestion.getQuestion());
+                    if (!ban) {
+                        userRequest(update, chatId, currUser, user, text, questionsList, null);
                     } else {
-                        user.setWaitingForResponse(false);
-                        user.setCurrentQuestionId(minId);
-                        userChatRepository.save(user);
-                        sendMessage(chatId, "Спасибо! Вы ответили на все вопросы.");
+                        List<BanQuestions> banQuestionsList = new ArrayList<>(banQuestionsService.getAll());
+                        userRequest(update, chatId, currUser, user, text, null, banQuestionsList);
+
                     }
-                    return;
-                }
-
-                if (currUser.getRole().equals(Role.ADMIN)) {
-                    handleAdminCommands(text, chatId);
                 } else {
-                    if(text.equals("Карту забанили")) {
-                        sendMessage(chatId, "xyu");
+                    if (currUser.getRole().equals(Role.ADMIN)) {
+                        handleAdminCommands(text, chatId);
                     } else {
-                        sendMessage(chatId, "Дождитесь 23:50 чтобы ответить на вопросы");
-                        sendUserPanel(chatId);
+                        if (text.equals("Карту забанили")) {
+                            long minId = banQuestionsService.getMinId();
+                            user.setCurrentQuestionId(minId);
+                            user.setWaitingForResponse(true);
+                            userChatRepository.save(user);
+                            sendMessage(chatId, banQuestionsService.getQuestion(minId).getQuestion());
+                            ban = true;
+                        } else {
+                            sendMessage(chatId, "Дождитесь 23:50 чтобы ответить на вопросы");
+                            sendUserPanel(chatId);
 
+                        }
                     }
                 }
             }
+        }
+    }
+
+    private void userRequest(Update update, Long chatId, Users currUser, UserChat user,
+                             String text, @Nullable List<Questions> questionsList, @Nullable List<BanQuestions> banQuestionsList) {
+
+        long currentQuestionId = user.getCurrentQuestionId();
+        long maxId;
+        long minId;
+        boolean flag = false;
+
+        Object nextQuestion;
+        if (questionsList != null) {
+            maxId = questionsService.getMaxId();
+            minId = questionsService.getMinId();
+
+            nextQuestion = questionsList.stream()
+                    .filter(q -> q.getId() > currentQuestionId && q.getId() <= maxId)
+                    .findFirst()
+                    .orElse(null);
+
+        } else {
+
+            maxId = banQuestionsService.getMaxId();
+            minId = banQuestionsService.getMinId();
+
+            nextQuestion = banQuestionsList.stream()
+                    .filter(q -> q.getId() > currentQuestionId && q.getId() <= maxId)
+                    .findFirst()
+                    .orElse(null);
+
+            flag = true;
+        }
+
+        sendMessage(chatId, "Ваш ответ записан\n```\n" + text + "\n```");
+
+        messageService.saveMessage(update, currUser, flag);
+
+        if (nextQuestion != null) {
+            if (nextQuestion instanceof Questions) {
+                user.setCurrentQuestionId(((Questions) nextQuestion).getId());
+                sendMessage(chatId, ((Questions) nextQuestion).getQuestion());
+            } else {
+                user.setCurrentQuestionId(((BanQuestions) nextQuestion).getId());
+                sendMessage(chatId, ((BanQuestions) nextQuestion).getQuestion());
+            }
+
+            user.setWaitingForResponse(true);
+            userChatRepository.save(user);
+        }
+        // Если вопросов больше нет
+        else {
+            user.setWaitingForResponse(false);
+            user.setCurrentQuestionId(minId); // Сбрасываем на минимальный ID
+            userChatRepository.save(user);
+            ban = false;
+            sendMessage(chatId, "Спасибо! Вы ответили на все вопросы.");
         }
     }
 
@@ -218,6 +262,7 @@ public class MyTelegramBot extends TelegramLongPollingBot {
             case "/admin" -> sendAdminPanel(chatId);
             case "/setrole" -> handleSetRoleCommand(text, chatId);
             case "/help" -> sendHelpMessage(chatId);
+            case "/setTime" -> handleSetIsMorning(text, chatId);
             default -> sendQuestionTypeButtonsBasedOnText(text, chatId);
         }
     }
@@ -239,13 +284,42 @@ public class MyTelegramBot extends TelegramLongPollingBot {
         sendAdminPanel(chatId);
     }
 
+    private void handleSetIsMorning(String text, Long chatId) {
+        String[] parts = text.split(" ");
+
+        String question = "";
+        for (int i = 1; i < parts.length - 1; i++) {
+            question += parts[i];
+            if (i != parts.length - 2) {
+                question += " ";
+            }
+        }
+        String isMorning = parts[parts.length - 1].toLowerCase();
+
+        if (questionsService.setIsMorning(question, isMorning)) {
+            sendMessage(chatId, "Вопросу " + question + " выдана роль " + isMorning);
+        } else {
+            sendMessage(chatId, "Ошибка! Такого вопроса или параметра не существует!");
+        }
+
+        sendAdminPanel(chatId);
+    }
+
     private void sendHelpMessage(Long chatId) {
         sendMessage(chatId, """
-            /admin - команда доступная только админам. Команда выводит клавиатуру бота с функционалом
-            /setrole - команда доступная только админам. Команда предназначена для смены роли другого пользователя, необходимо указать имя пользователя и роль которую хотите присвоить. Писать команду необходимо в таком формате\s
-            <code>/setrole username role</code>\s
-            где у роли есть 2 параметра (admin,user)
-            """);
+                /admin - команда доступна только админам. Команда выводит клавиатуру бота с функционалом
+                                
+                /setrole - команда доступна только админам. Команда предназначена для смены роли другого пользователя, необходимо указать имя пользователя и роль которую хотите присвоить. Писать команду необходимо в таком формате\s
+                <code>/setrole username role</code>\s
+                где у роли есть 2 параметра (admin,user)
+                                
+                /setTime - команда доступна только админам. Команда предназначена для смены времени вывода определенного вопроса.
+                Например если вы захотите изменить время(10:30 или 23:50) отправки какого либо вопроса, вы можете написать \n<code>/setTime question time</code>
+                где question это сам вопрос, а time это параметр который имеет 2 состояния (день/вечер)
+                вот пример команды если я захочу выполнить вывод вопроса в 10:30
+                <code>/setTime как дела? день</code>
+                P.S. вопрос (как дела?) будет появляться у пользователей в 10:30 т.к. я написал (день), если напишешь (вечер) то в 23:50
+                """);
     }
 
     private void sendQuestionTypeButtonsBasedOnText(String text, Long chatId) {

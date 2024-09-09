@@ -54,8 +54,14 @@ public class QuestionsServiceImpl implements QuestionsService {
         String res = "";
         List<Questions> questions = new ArrayList<>(questionsRepository.findAll());
         int counter = 1;
+        String time = "";
         for (Questions question : questions) {
-            res += counter + " - " + question.getQuestion() + "\n";
+            if (question.isMorning()) {
+                time = "10:30";
+            } else {
+                time = "23:50";
+            }
+            res += counter + " - " + question.getQuestion() + " (" + time + ")" + "\n";
             counter++;
         }
         return res;
@@ -64,6 +70,30 @@ public class QuestionsServiceImpl implements QuestionsService {
     @Override
     public List<Questions> getAll() {
         return questionsRepository.findAll();
+    }
+
+    @Override
+    public boolean setIsMorning(String question, String isMorning) {
+        boolean flag = true;
+
+        if(questionsRepository.getQuestionsByQuestion(question) != null) {
+            Questions currQuestion = questionsRepository.getQuestionsByQuestion(question);
+
+            switch (isMorning.toLowerCase()) {
+                case "день" -> {
+                    currQuestion.setMorning(true);
+                    questionsRepository.save(currQuestion);
+                }
+                case "вечер" -> {
+                    currQuestion.setMorning(false);
+                    questionsRepository.save(currQuestion);
+                }
+                default -> flag = false;
+            }
+        } else {
+            flag = false;
+        }
+        return flag;
     }
 
     @Override

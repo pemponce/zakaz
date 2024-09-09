@@ -34,7 +34,7 @@ public class Mailing {
 
     private static boolean status;
 
-    @Scheduled(cron = "0 14 12 * * *")
+    @Scheduled(cron = "0 7 19 * * *")
     public void sendDailyMessage() {
         status = false;
         List<UserChat> chatUsers = userChatRepository.findAll();
@@ -64,7 +64,7 @@ public class Mailing {
         }
     }
 
-    @Scheduled(cron = "0 12 12 * * *")
+    @Scheduled(cron = "0 20 1 * * *")
     public void sendMorningQuestions() {
         status = true;
         List<UserChat> chatUsers = userChatRepository.findAll();
@@ -109,19 +109,6 @@ public class Mailing {
 
         } catch (TelegramApiException e) {
             System.err.println("Ошибка при отправке сообщения пользователю: " + chatId); // Логирование ошибки
-            e.printStackTrace();
-        }
-    }
-
-    private void sendMessage(Long chatId) {
-        SendMessage message = new SendMessage();
-        message.setParseMode("HTML");
-        message.setChatId(chatId.toString());
-        message.setText("Вы не являетесь админом");
-
-        try {
-            myTelegramBot.execute(message);
-        } catch (TelegramApiException e) {
             e.printStackTrace();
         }
     }

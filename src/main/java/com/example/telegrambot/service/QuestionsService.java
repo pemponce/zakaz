@@ -12,6 +12,7 @@ public interface QuestionsService {
     void deleteQuestion(String question);
     String getAllQuestions();
     List<Questions> getAll();
+    boolean setIsMorning(String question, String isMorning);
     Long getMaxId();
     Long getMinId();
     List<Questions> getMorningQuestions();

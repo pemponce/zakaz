@@ -40,6 +40,16 @@ public class BanQuestionsServiceImpl implements BanQuestionsService {
     }
 
     @Override
+    public Long getMaxId() {
+        return banQuestionsRepository.getMaxId();
+    }
+
+    @Override
+    public Long getMinId() {
+        return banQuestionsRepository.getMinId();
+    }
+
+    @Override
     public void deleteQuestion(String question) {
 
         long questionId = banQuestionsRepository.getBanQuestionsByQuestion(question).getId();
@@ -57,6 +67,11 @@ public class BanQuestionsServiceImpl implements BanQuestionsService {
             counter++;
         }
         return res;
+    }
+
+    @Override
+    public List<BanQuestions> getAll() {
+        return banQuestionsRepository.findAll();
     }
 
     @Override
