@@ -9,7 +9,6 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 import java.io.IOException;
-import java.lang.module.Configuration;
 import java.security.GeneralSecurityException;
 
 @SpringBootApplication
@@ -31,10 +30,14 @@ public class TelegramBotApplication {
     public void createSheets() {
         try {
             googleSheetsService.createSheet(spreadsheetId, "usersCode");
+        } catch (IOException | GeneralSecurityException e) {
+            System.err.println("Ошибка создании таблицы usersCode, возможно она уже существует.");
+        }
+
+        try {
             googleSheetsService.createSheet(spreadsheetId, "cardBanned");
         } catch (IOException | GeneralSecurityException e) {
-            throw new RuntimeException("Ошибка в создании листов, возможно листы уже созданы." +
-                    " Если вы видите это сообщение не переживайте, все скорее всего работает в штатном режиме!");
+            System.err.println("Ошибка создании таблицы cardBanned, возможно она уже существует.");
         }
     }
 }

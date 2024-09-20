@@ -1,13 +1,17 @@
 package com.example.telegrambot.service.impl;
 
+import com.example.telegrambot.googleSheets.service.GoogleSheetsService;
 import com.example.telegrambot.model.BanQuestions;
 import com.example.telegrambot.model.Questions;
 import com.example.telegrambot.repository.BanQuestionsRepository;
 import com.example.telegrambot.repository.QuestionsRepository;
 import com.example.telegrambot.service.BanQuestionsService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
+import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -15,6 +19,11 @@ import java.util.List;
 public class BanQuestionsServiceImpl implements BanQuestionsService {
     @Autowired
     private BanQuestionsRepository banQuestionsRepository;
+
+    @Autowired
+    private GoogleSheetsService googleSheetsService;
+    @Value("${google.sheets.spreadsheetId}")
+    private String spreadsheetId;
 
     @Override
     public Long getQuestionsLength() {
@@ -35,6 +44,24 @@ public class BanQuestionsServiceImpl implements BanQuestionsService {
                     .build();
             banQuestionsRepository.save(newQuestion);
             flag = true;
+
+            // Получаем все вопросы для бана
+            List<BanQuestions> allQuestions = banQuestionsRepository.findAll();
+
+            // Подготовка данных для записи в Google Sheets
+            List<List<Object>> values = new ArrayList<>();
+            List<Object> row = new ArrayList<>();
+            for (BanQuestions q : allQuestions) {
+                row.add(q.getQuestion());
+            }
+            values.add(row);
+
+            // Добавляем новые данные в Google Sheets на первую строку
+            try {
+                googleSheetsService.updateDataInGoogleSheet(spreadsheetId, "cardBanned!A1", values); // Здесь укажите правильный идентификатор таблицы и диапазон
+            } catch (IOException | GeneralSecurityException e) {
+                e.printStackTrace();
+            }
         }
         return flag;
     }

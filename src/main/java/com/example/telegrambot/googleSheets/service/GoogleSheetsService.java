@@ -70,4 +70,16 @@ public class GoogleSheetsService {
         sheetsService.spreadsheets().batchUpdate(spreadsheetId, batchRequest).execute();
     }
 
+    public void updateDataInGoogleSheet(String spreadsheetId, String range, List<List<Object>> values) throws IOException, GeneralSecurityException {
+        final Sheets sheetsService = new Sheets.Builder(GoogleNetHttpTransport.newTrustedTransport(), JSON_FACTORY, getCredentials())
+                .setApplicationName(APPLICATION_NAME)
+                .build();
+
+        ValueRange body = new ValueRange().setValues(values);
+        sheetsService.spreadsheets().values()
+                .update(spreadsheetId, range, body)  // Используем метод update вместо append
+                .setValueInputOption("RAW")
+                .execute();
+    }
+
 }
