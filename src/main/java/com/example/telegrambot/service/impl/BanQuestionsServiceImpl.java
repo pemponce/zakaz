@@ -58,7 +58,7 @@ public class BanQuestionsServiceImpl implements BanQuestionsService {
 
             // Добавляем новые данные в Google Sheets на первую строку
             try {
-                googleSheetsService.updateDataInGoogleSheet(spreadsheetId, "cardBanned!A1", values); // Здесь укажите правильный идентификатор таблицы и диапазон
+                googleSheetsService.updateDataInGoogleSheet(spreadsheetId, "cardBanned!B1", values); // Здесь укажите правильный идентификатор таблицы и диапазон
             } catch (IOException | GeneralSecurityException e) {
                 e.printStackTrace();
             }

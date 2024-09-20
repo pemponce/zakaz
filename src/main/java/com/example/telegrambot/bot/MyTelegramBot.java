@@ -63,6 +63,7 @@ public class MyTelegramBot extends TelegramLongPollingBot {
     private GoogleSheetsService googleSheetsService;
 
     private boolean ban;
+    private final ArrayList<Object> answers = new ArrayList<>();
 
     public MyTelegramBot(@Value("${telegram.bot.token}") String botToken) {
         super(botToken);
@@ -215,8 +216,12 @@ public class MyTelegramBot extends TelegramLongPollingBot {
                     .filter(q -> q.getId() > currentQuestionId && q.getId() <= maxId)
                     .findFirst()
                     .orElse(null);
+            sendMessage(chatId, "Ваш ответ записан\n```\n" + text + "\n```");
+
+            messageService.saveMessage(update, null, currUser, flag);
 
         } else {
+
 
             maxId = banQuestionsService.getMaxId();
             minId = banQuestionsService.getMinId();
@@ -227,11 +232,12 @@ public class MyTelegramBot extends TelegramLongPollingBot {
                     .orElse(null);
 
             flag = true;
+            sendMessage(chatId, "Ваш ответ записан\n```\n" + text + "\n```");
+
+            answers.add(text);
+
         }
 
-        sendMessage(chatId, "Ваш ответ записан\n```\n" + text + "\n```");
-
-        messageService.saveMessage(update, currUser, flag);
 
         if (nextQuestion != null) {
             if (nextQuestion instanceof Questions) {
@@ -250,6 +256,10 @@ public class MyTelegramBot extends TelegramLongPollingBot {
             user.setWaitingForResponse(false);
             user.setCurrentQuestionId(minId); // Сбрасываем на минимальный ID
             userChatRepository.save(user);
+            if (ban) {
+                messageService.saveMessage(update, answers, currUser, flag);
+                answers.clear();
+            }
             ban = false;
             sendMessage(chatId, "Спасибо! Вы ответили на все вопросы.");
         }

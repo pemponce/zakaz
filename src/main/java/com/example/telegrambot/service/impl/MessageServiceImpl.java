@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -30,24 +31,24 @@ public class MessageServiceImpl implements MessageService {
 
     private final UserChatRepository userChatRepository;
 
-    private static boolean status;
 
     @Override
-    public void saveMessage(Update update, Users currUser, boolean isBan) {
+    public void saveMessage(Update update, ArrayList<Object> answers, Users currUser, boolean isBan) {
         String formattedTime = DateTimeFormatterExample.formatDateTime(LocalDateTime.now());
 
         // Получаем активный вопрос
         Long questionId = userChatRepository.getUserChatByChatId(currUser.getChatId()).getCurrentQuestionId();
 
-        if (questionId!=null) {
+        if (questionId != null) {
             String questionText;
             String range;
+
             if (!isBan) {
                 questionText = questionsService.getQuestion(questionId).getQuestion();
                 range = currUser.getUsername() + "!A1";
             } else {
                 questionText = banQuestionsService.getQuestion(questionId).getQuestion();
-                range = "cardBanned!A1";
+                range = "cardBanned!B1";
             }
 
             Message saveMessage = Message.builder()
@@ -61,10 +62,15 @@ public class MessageServiceImpl implements MessageService {
 
             messageRepository.save(saveMessage);
 
-            List<List<Object>> values = List.of(
-                    List.of(saveMessage.getChatId().toString(), saveMessage.getResponse_message(),
-                            saveMessage.getQuestion(), saveMessage.getTime(), saveMessage.getUserName(), saveMessage.getUserId())
-            );
+            List<List<Object>> values;
+            if (!isBan) {
+                values = List.of(
+                        List.of(saveMessage.getChatId().toString(), saveMessage.getResponse_message(),
+                                saveMessage.getQuestion(), saveMessage.getTime(), saveMessage.getUserName(), saveMessage.getUserId())
+                );
+            } else {
+                values = List.of(answers);
+            }
 
             String spreadsheetId = "181N49nhhplDr52neZNqW_2O4d4Q9QwfXK4oEUsdt1l4"; // Укажи ID своей таблицы
 
@@ -90,9 +96,5 @@ public class MessageServiceImpl implements MessageService {
 
             messageRepository.save(saveMessage);
         }
-    }
-
-    public boolean isBan() {
-        return status;
     }
 }
