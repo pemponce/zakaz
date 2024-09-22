@@ -2,9 +2,7 @@ package com.example.telegrambot.service.impl;
 
 import com.example.telegrambot.googleSheets.service.GoogleSheetsService;
 import com.example.telegrambot.model.BanQuestions;
-import com.example.telegrambot.model.Questions;
 import com.example.telegrambot.repository.BanQuestionsRepository;
-import com.example.telegrambot.repository.QuestionsRepository;
 import com.example.telegrambot.service.BanQuestionsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -22,8 +20,6 @@ public class BanQuestionsServiceImpl implements BanQuestionsService {
 
     @Autowired
     private GoogleSheetsService googleSheetsService;
-    @Value("${google.sheets.spreadsheetId}")
-    private String spreadsheetId;
 
     @Override
     public Long getQuestionsLength() {
@@ -45,23 +41,7 @@ public class BanQuestionsServiceImpl implements BanQuestionsService {
             banQuestionsRepository.save(newQuestion);
             flag = true;
 
-            // Получаем все вопросы для бана
-            List<BanQuestions> allQuestions = banQuestionsRepository.findAll();
-
-            // Подготовка данных для записи в Google Sheets
-            List<List<Object>> values = new ArrayList<>();
-            List<Object> row = new ArrayList<>();
-            for (BanQuestions q : allQuestions) {
-                row.add(q.getQuestion());
-            }
-            values.add(row);
-
-            // Добавляем новые данные в Google Sheets на первую строку
-            try {
-                googleSheetsService.updateDataInGoogleSheet(spreadsheetId, "cardBanned!B1", values); // Здесь укажите правильный идентификатор таблицы и диапазон
-            } catch (IOException | GeneralSecurityException e) {
-                e.printStackTrace();
-            }
+            googleSheetsService.updateData("cardBanned!B1:Z1", prepareForUpdateSheets());
         }
         return flag;
     }
@@ -78,22 +58,24 @@ public class BanQuestionsServiceImpl implements BanQuestionsService {
 
     @Override
     public void deleteQuestion(String question) {
-
         long questionId = banQuestionsRepository.getBanQuestionsByQuestion(question).getId();
 
         banQuestionsRepository.deleteById(questionId);
+
+        googleSheetsService.updateData("cardBanned!B1:Z1", prepareForUpdateSheets());
+
     }
 
     @Override
     public String getAllQuestions() {
-        String res = "";
+        StringBuilder res = new StringBuilder();
         List<BanQuestions> questions = new ArrayList<>(banQuestionsRepository.findAll());
         int counter = 1;
         for (BanQuestions question : questions) {
-            res += counter + " - " + question.getQuestion() + "\n";
+            res.append(counter).append(" - ").append(question.getQuestion()).append("\n");
             counter++;
         }
-        return res;
+        return res.toString();
     }
 
     @Override
@@ -104,6 +86,22 @@ public class BanQuestionsServiceImpl implements BanQuestionsService {
     @Override
     public void saveQuestion(BanQuestions question) {
         banQuestionsRepository.save(question);
+    }
+
+    @Override
+    public List<List<Object>> prepareForUpdateSheets() {
+        List<BanQuestions> allQuestions = banQuestionsRepository.findAll();
+
+        // Подготовка данных для записи в Google Sheets
+        List<List<Object>> values = new ArrayList<>();
+        List<Object> row = new ArrayList<>();
+        for (BanQuestions q : allQuestions) {
+            row.add(q.getQuestion());
+        }
+        row.add("");
+        values.add(row);
+
+        return values;
     }
 
 }

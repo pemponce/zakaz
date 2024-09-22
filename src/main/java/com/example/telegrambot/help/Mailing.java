@@ -34,7 +34,7 @@ public class Mailing {
 
     private static boolean status;
 
-    @Scheduled(cron = "0 0/2 * * * *")
+    @Scheduled(cron = "0 50 23 * * *")
     public void sendDailyMessage() {
         status = false;
         List<UserChat> chatUsers = userChatRepository.findAll();
@@ -64,7 +64,7 @@ public class Mailing {
         }
     }
 
-    @Scheduled(cron = "0 20 1 * * *")
+    @Scheduled(cron = "0 30 10 * * *")
     public void sendMorningQuestions() {
         status = true;
         List<UserChat> chatUsers = userChatRepository.findAll();

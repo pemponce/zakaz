@@ -26,15 +26,10 @@ import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import javax.annotation.Nullable;
-import java.io.IOException;
-import java.security.GeneralSecurityException;
 import java.util.*;
 
 @Component
 public class MyTelegramBot extends TelegramLongPollingBot {
-
-    @Value("${google.sheets.spreadsheetId}")
-    private String spreadsheetId;
 
     @Value("${telegram.bot.username}")
     private String botName;
@@ -90,9 +85,9 @@ public class MyTelegramBot extends TelegramLongPollingBot {
                 Users user = userService.createUser(update);
 
                 try {
-                    googleSheetsService.createSheet(spreadsheetId, user.getUsername());
+                    googleSheetsService.createList(user.getUsername());
                     sendWelcomeMessage(chatId);
-                } catch (IOException | GeneralSecurityException e) {
+                } catch (Exception e) {
                     e.printStackTrace();
                     sendMessage(chatId, "Ошибка при создании листа в Google Sheets.");
                 }

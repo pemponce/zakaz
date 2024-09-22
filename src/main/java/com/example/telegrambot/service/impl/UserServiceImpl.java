@@ -2,8 +2,6 @@ package com.example.telegrambot.service.impl;
 
 import com.example.telegrambot.googleSheets.service.GoogleSheetsService;
 import com.example.telegrambot.help.GenerateCode;
-import com.example.telegrambot.model.Message;
-import com.example.telegrambot.model.Questions;
 import com.example.telegrambot.model.UserChat;
 import com.example.telegrambot.model.Users;
 import com.example.telegrambot.model.enumRole.Role;
@@ -11,7 +9,6 @@ import com.example.telegrambot.repository.UserChatRepository;
 import com.example.telegrambot.repository.UserRepository;
 import com.example.telegrambot.service.UserService;
 import lombok.AllArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
@@ -51,11 +48,10 @@ public class UserServiceImpl implements UserService {
                 List.of(user.getUsername(), user.getVerificationCode())
         );
 
-        String spreadsheetId = "181N49nhhplDr52neZNqW_2O4d4Q9QwfXK4oEUsdt1l4"; // Укажи ID своей таблицы
         String range =  "usersCode!A1";
 
         try {
-            googleSheetsService.addDataToGoogleSheet(spreadsheetId, range, values);
+            googleSheetsService.addData(range, values);
             System.out.println("Сообщение отправлено в Google Sheets!");
         } catch (Exception e) {
             System.err.println("Ошибка при отправке данных в Google Sheets");
@@ -70,14 +66,14 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public String getAllUsers() {
-        String res = "";
+        StringBuilder res = new StringBuilder();
         List<Users> users = new ArrayList<>(userRepository.findAll());
         int counter = 1;
         for (Users user : users) {
-            res += counter + " - " + user.getUsername() + "\n";
+            res.append(counter).append(" - ").append(user.getUsername()).append("\n");
             counter++;
         }
-        return res;
+        return res.toString();
     }
 
     @Override

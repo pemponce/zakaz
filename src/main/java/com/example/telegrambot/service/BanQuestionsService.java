@@ -15,4 +15,5 @@ public interface BanQuestionsService {
     List<BanQuestions> getAll();
     boolean createQuestion(String question);
     void saveQuestion(BanQuestions question);
+    List<List<Object>> prepareForUpdateSheets();
 }

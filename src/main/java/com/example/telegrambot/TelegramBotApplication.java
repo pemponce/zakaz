@@ -1,48 +1,20 @@
 package com.example.telegrambot;
 
-import com.example.telegrambot.googleSheets.service.GoogleSheetsService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
-import java.io.IOException;
-import java.security.GeneralSecurityException;
-
-@SpringBootApplication
 @EnableScheduling
+@SpringBootApplication
 public class TelegramBotApplication {
 
-    @Value("${google.sheets.spreadsheetId}")
-    private String spreadsheetId;
-
-    @Autowired
-    private GoogleSheetsService googleSheetsService;
-
     public static void main(String[] args) {
-        ConfigurableApplicationContext context = SpringApplication.run(TelegramBotApplication.class, args);
-        TelegramBotApplication app = context.getBean(TelegramBotApplication.class);
-        app.createSheets();
-    }
-
-    public void createSheets() {
-        try {
-            googleSheetsService.createSheet(spreadsheetId, "usersCode");
-        } catch (IOException | GeneralSecurityException e) {
-            System.err.println("Ошибка создании таблицы usersCode, возможно она уже существует.");
-        }
-
-        try {
-            googleSheetsService.createSheet(spreadsheetId, "cardBanned");
-        } catch (IOException | GeneralSecurityException e) {
-            System.err.println("Ошибка создании таблицы cardBanned, возможно она уже существует.");
-        }
+        SpringApplication.run(TelegramBotApplication.class, args);
     }
 }
 
-/** TODO: 03.09.2024
+/**
+ * TODO: 03.09.2024
  *  - разобраться с токеном который надо подтверждать каждый час ⁉
  *  - добавить проверку наличия вопроса при его удалении ✅
  * мб добавить исключение на смену роли у самого себя ✅
@@ -56,7 +28,17 @@ public class TelegramBotApplication {
  * 2. Сколько сберов живых
  * 3. Сколько денег в обороте (этот вопрос должен задаваться первым в 10:00 мск)
  * 4. Доход за сегодня
-  */
+ * <p>
+ * Ну вот как у меня в моей таблице были оформлены
+ * И блоки в строку по вопросам
+ * 1. Фио дропа
+ * 2. Оборотка
+ * 3. Сколько встряло
+ * 4 вид блока
+ * Такие вопросы по кнопке блока
+ * И их в табличку
+ * В строку
+ */
 
 
 //Please open the following address in your browser:

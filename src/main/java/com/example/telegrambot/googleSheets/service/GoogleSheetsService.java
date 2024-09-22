@@ -1,85 +1,146 @@
 package com.example.telegrambot.googleSheets.service;
 
-import com.google.api.client.auth.oauth2.Credential;
 import com.google.api.client.extensions.java6.auth.oauth2.AuthorizationCodeInstalledApp;
 import com.google.api.client.extensions.jetty.auth.oauth2.LocalServerReceiver;
 import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeFlow;
 import com.google.api.client.googleapis.auth.oauth2.GoogleClientSecrets;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
-import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.client.googleapis.json.GoogleJsonError;
+import com.google.api.client.googleapis.json.GoogleJsonResponseException;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.client.util.store.FileDataStoreFactory;
 import com.google.api.services.sheets.v4.Sheets;
 import com.google.api.services.sheets.v4.SheetsScopes;
 import com.google.api.services.sheets.v4.model.*;
+import jakarta.annotation.PostConstruct;
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.*;
-import java.security.GeneralSecurityException;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Service
+@Slf4j
 public class GoogleSheetsService {
 
     private static final String APPLICATION_NAME = "telegramBot";
-    private static final JsonFactory JSON_FACTORY = GsonFactory.getDefaultInstance();
     private static final String TOKENS_DIRECTORY_PATH = "tokens";
+    private static final String CREDENTIALS_FILE_PATH = "/credentials.json";
+    private static final JsonFactory JSON_FACTORY = GsonFactory.getDefaultInstance();
+    private static final List<String> SCOPES = Collections.singletonList(SheetsScopes.SPREADSHEETS);
 
-    private static final List<String> SCOPES =
-            Collections.singletonList(SheetsScopes.SPREADSHEETS);
-    private static final String CREDENTIALS_FILE_PATH = "/credentials.json"; // Укажи путь к JSON с учетными данными
+    @Value("${google.sheets.spreadsheetId}")
+    private String spreadsheetId;
 
+    private Sheets.Spreadsheets spreadsheets;
+
+    @PostConstruct
     @SneakyThrows
-    private static Credential getCredentials() {
-        InputStream in = GoogleSheetsService.class.getResourceAsStream(CREDENTIALS_FILE_PATH);
-        GoogleClientSecrets clientSecrets = GoogleClientSecrets.load(JSON_FACTORY, new InputStreamReader(in));
-
-        GoogleAuthorizationCodeFlow flow = new GoogleAuthorizationCodeFlow.Builder(
-                GoogleNetHttpTransport.newTrustedTransport(), JSON_FACTORY, clientSecrets, SCOPES)
+    private void init() {
+        var in = getClass().getResourceAsStream(CREDENTIALS_FILE_PATH);
+        if (Objects.isNull(in)) {
+            throw new FileNotFoundException(CREDENTIALS_FILE_PATH.concat(" not found!"));
+        }
+        var client = GoogleClientSecrets.load(JSON_FACTORY, new InputStreamReader(in));
+        var receiver = new LocalServerReceiver.Builder()
+                .setPort(8888)
+                .build();
+        var flow = new GoogleAuthorizationCodeFlow.Builder(
+                GoogleNetHttpTransport.newTrustedTransport(),
+                JSON_FACTORY,
+                client,
+                SCOPES)
                 .setDataStoreFactory(new FileDataStoreFactory(new java.io.File(TOKENS_DIRECTORY_PATH)))
                 .setAccessType("online")
                 .build();
-
-        LocalServerReceiver receiver = new LocalServerReceiver.Builder().setPort(8888).build();
-        return new AuthorizationCodeInstalledApp(flow, receiver).authorize("user");
+        var credentials = new AuthorizationCodeInstalledApp(flow, receiver)
+                .authorize("user");
+        spreadsheets = new Sheets.Builder(GoogleNetHttpTransport.newTrustedTransport(), JSON_FACTORY, credentials)
+                .setApplicationName(APPLICATION_NAME)
+                .build()
+                .spreadsheets();
+        createSheetsIfNotExists();
     }
 
-    public void addDataToGoogleSheet(String spreadsheetId, String range, List<List<Object>> values) throws IOException, GeneralSecurityException {
-        final Sheets sheetsService = new Sheets.Builder(GoogleNetHttpTransport.newTrustedTransport(), JSON_FACTORY, getCredentials())
-                .setApplicationName(APPLICATION_NAME)
-                .build();
+    private void createSheetsIfNotExists() {
+        createList("usersCode");
+        createList("cardBanned");
+    }
 
-        ValueRange body = new ValueRange().setValues(values);
+    public void createList(String sheetName) {
+        executionWrapper(() -> {
+            var addSheetRequest = new AddSheetRequest().setProperties(new SheetProperties().setTitle(sheetName));
+            var request = new Request().setAddSheet(addSheetRequest);
+            var batchRequest = new BatchUpdateSpreadsheetRequest().setRequests(Collections.singletonList(request));
+            return spreadsheets.batchUpdate(spreadsheetId, batchRequest).execute();
+        });
+    }
+
+    public void addData(String range, List<List<Object>> values) {
+        executionWrapper(() -> {
+            var body = new ValueRange()
+                    .setValues(values);
+            return spreadsheets.values()
+                    .append(spreadsheetId, range, body)
+                    .setValueInputOption("RAW")
+                    .execute();
+        });
+    }
+
+    public void updateData(String range, List<List<Object>> values) {
+        executionWrapper(() -> {
+            var body = new ValueRange()
+                    .setValues(values);
+            return spreadsheets.values()
+                    .update(spreadsheetId, range, body)
+                    .setValueInputOption("RAW")
+                    .execute();
+        });
+    }
+
+//    public void deleteData(String range, Object value) {
+//        executionWrapper(() -> {
+//            var clearVal = new ClearValuesRequest()
+//                    .set("cardBanned" ,value);
+//            return spreadsheets.values()
+//                    .clear(spreadsheetId, range, clearVal)
+//                    .remove(value);
+//        });
+//    }
+
+
+    private interface GoogleSheetsExecution<T> {
+        T execute() throws IOException;
+    }
+
+    private <T> T executionWrapper(GoogleSheetsExecution<T> execution) {
+        try {
+            return execution.execute();
+        } catch (GoogleJsonResponseException exception) {
+            var errors = exception.getDetails().getErrors().stream()
+                    .map(GoogleJsonError.ErrorInfo::getMessage)
+                    .collect(Collectors.joining("\n"));
+            log.error("Can't execute request. \nErrors: \n{}", errors);
+        } catch (IOException exception) {
+            log.error("Can't execute request", exception);
+        }
+        return null;
+    }
+
+
+
+    /*
+
         sheetsService.spreadsheets().values()
-                .append(spreadsheetId, range, body)
+                .clear(spreadsheetId, range, body)  // Используем метод update вместо append
                 .setValueInputOption("RAW")
                 .execute();
-    }
-    public void createSheet(String spreadsheetId, String sheetName) throws IOException, GeneralSecurityException {
-        final Sheets sheetsService = new Sheets.Builder(GoogleNetHttpTransport.newTrustedTransport(), JSON_FACTORY, getCredentials())
-                .setApplicationName(APPLICATION_NAME)
-                .build();
-
-        AddSheetRequest addSheetRequest = new AddSheetRequest().setProperties(new SheetProperties().setTitle(sheetName));
-        Request request = new Request().setAddSheet(addSheetRequest);
-        BatchUpdateSpreadsheetRequest batchRequest = new BatchUpdateSpreadsheetRequest().setRequests(Collections.singletonList(request));
-        sheetsService.spreadsheets().batchUpdate(spreadsheetId, batchRequest).execute();
-    }
-
-    public void updateDataInGoogleSheet(String spreadsheetId, String range, List<List<Object>> values) throws IOException, GeneralSecurityException {
-        final Sheets sheetsService = new Sheets.Builder(GoogleNetHttpTransport.newTrustedTransport(), JSON_FACTORY, getCredentials())
-                .setApplicationName(APPLICATION_NAME)
-                .build();
-
-        ValueRange body = new ValueRange().setValues(values);
-        sheetsService.spreadsheets().values()
-                .update(spreadsheetId, range, body)  // Используем метод update вместо append
-                .setValueInputOption("RAW")
-                .execute();
-    }
+     */
 
 }
