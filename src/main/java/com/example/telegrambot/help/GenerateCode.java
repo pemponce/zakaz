@@ -19,8 +19,8 @@ public class GenerateCode {
         Random random = new Random();
         int code;
         do {
-            code = 1000 + random.nextInt(9000); // Генерация 4-значного кода
-        } while (userRepository.existsByVerificationCode(code)); // Проверка уникальности кода
+            code = 1000 + random.nextInt(9000);
+        } while (userRepository.existsByVerificationCode(code));
 
         return code;
     }

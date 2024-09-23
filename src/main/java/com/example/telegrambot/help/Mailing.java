@@ -24,8 +24,6 @@ public class Mailing {
     @Autowired
     private MyTelegramBot myTelegramBot;
     @Autowired
-    private MessageService messageService;
-    @Autowired
     private UserChatRepository userChatRepository;
     @Autowired
     private UserRepository userRepository;
@@ -34,7 +32,7 @@ public class Mailing {
 
     private static boolean status;
 
-    @Scheduled(cron = "0 50 23 * * *")
+    @Scheduled(cron = "0 0/2 * * * *")
     public void sendDailyMessage() {
         status = false;
         List<UserChat> chatUsers = userChatRepository.findAll();
@@ -105,10 +103,10 @@ public class Mailing {
 
         try {
             myTelegramBot.execute(message);
-            System.out.println("Сообщение отправлено пользователю: " + chatId); // Логирование отправки
+            System.out.println("Сообщение отправлено пользователю: " + chatId);
 
         } catch (TelegramApiException e) {
-            System.err.println("Ошибка при отправке сообщения пользователю: " + chatId); // Логирование ошибки
+            System.err.println("Ошибка при отправке сообщения пользователю: " + chatId);
             e.printStackTrace();
         }
     }

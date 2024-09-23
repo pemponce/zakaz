@@ -41,7 +41,7 @@ public class BanQuestionsServiceImpl implements BanQuestionsService {
             banQuestionsRepository.save(newQuestion);
             flag = true;
 
-            googleSheetsService.updateData("cardBanned!B1:Z1", prepareForUpdateSheets());
+            googleSheetsService.updateData("Banned!B1:Z1", prepareForUpdateSheets());
         }
         return flag;
     }
@@ -62,7 +62,7 @@ public class BanQuestionsServiceImpl implements BanQuestionsService {
 
         banQuestionsRepository.deleteById(questionId);
 
-        googleSheetsService.updateData("cardBanned!B1:Z1", prepareForUpdateSheets());
+        googleSheetsService.updateData("Banned!B1:Z1", prepareForUpdateSheets());
 
     }
 
@@ -92,7 +92,6 @@ public class BanQuestionsServiceImpl implements BanQuestionsService {
     public List<List<Object>> prepareForUpdateSheets() {
         List<BanQuestions> allQuestions = banQuestionsRepository.findAll();
 
-        // Подготовка данных для записи в Google Sheets
         List<List<Object>> values = new ArrayList<>();
         List<Object> row = new ArrayList<>();
         for (BanQuestions q : allQuestions) {

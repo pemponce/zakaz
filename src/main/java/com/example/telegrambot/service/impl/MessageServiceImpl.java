@@ -33,7 +33,6 @@ public class MessageServiceImpl implements MessageService {
     public void saveMessage(Update update, ArrayList<Object> answers, Users currUser, boolean isBan) {
         String formattedTime = DateTimeFormatterExample.formatDateTime(LocalDateTime.now());
 
-        // Получаем активный вопрос
         Long questionId = userChatRepository.getUserChatByChatId(currUser.getChatId()).getCurrentQuestionId();
 
         if (questionId != null) {
@@ -45,7 +44,7 @@ public class MessageServiceImpl implements MessageService {
                 range = currUser.getUsername() + "!A1";
             } else {
                 questionText = banQuestionsService.getQuestion(questionId).getQuestion();
-                range = "cardBanned!B1";
+                range = "Banned!B1";
             }
 
             Message saveMessage = Message.builder()
@@ -78,8 +77,6 @@ public class MessageServiceImpl implements MessageService {
             }
 
         } else {
-            // Обработка случая, когда активный вопрос отсутствует
-            // Например, можно сохранить сообщение без вопроса или отправить уведомление
             Message saveMessage = Message.builder()
                     .userId(currUser.getId())
                     .chatId(currUser.getChatId())

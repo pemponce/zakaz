@@ -96,7 +96,7 @@ public class MyTelegramBot extends TelegramLongPollingBot {
             if (currUser.isVerify()) {
                 handleVerifiedUser(text, chatId, currUser, update);
             } else {
-                handleNonVerifiedUser(text, chatId, currUser, update);
+                handleNonVerifiedUser(text, chatId, currUser);
             }
         }
     }
@@ -109,8 +109,8 @@ public class MyTelegramBot extends TelegramLongPollingBot {
 
             if (text.equals("Отмена")) {
                 sendMessage(chatId, "Отмена действия");
-                userStates.remove(chatId); // Сбрасываем состояние
-                sendAdminPanel(chatId); // Возвращаем админ-панель
+                userStates.remove(chatId);
+                sendAdminPanel(chatId);
                 return;
             }
             Questions newQuestion = new Questions();
@@ -176,7 +176,7 @@ public class MyTelegramBot extends TelegramLongPollingBot {
                     if (currUser.getRole().equals(Role.ADMIN)) {
                         handleAdminCommands(text, chatId);
                     } else {
-                        if (text.equals("Карту забанили")) {
+                        if (text.equals("Забанили")) {
                             long minId = banQuestionsService.getMinId();
                             user.setCurrentQuestionId(minId);
                             user.setWaitingForResponse(true);
@@ -333,15 +333,14 @@ public class MyTelegramBot extends TelegramLongPollingBot {
             case "Удалить вопрос" -> sendQuestionTypeButtons(chatId, "delete");
             case "Вывести все вопросы" -> sendQuestionTypeButtons(chatId, "list");
             case "Вывести всех пользователей" -> {
-                // Выводим пользователей без вызова sendQuestionTypeButtons
                 sendMessage(chatId, "Вот список всех пользователей:");
-                sendMessage(chatId, userService.getAllUsers()); // Вызываем метод для получения списка пользователей
+                sendMessage(chatId, userService.getAllUsers());
             }
             default -> sendMessage(chatId, "Неизвестная команда. Пожалуйста, используйте доступные команды.");
         }
     }
 
-    private void handleNonVerifiedUser(String text, Long chatId, Users currUser, Update update) {
+    private void handleNonVerifiedUser(String text, Long chatId, Users currUser) {
         String userState = userStates.getOrDefault(chatId, "");
         switch (userState) {
             case "AuthUser":
@@ -349,7 +348,7 @@ public class MyTelegramBot extends TelegramLongPollingBot {
                     userService.verifyUser(Integer.parseInt(text), currUser);
                     sendMessage(chatId, "Вы успешно авторизовались");
                 } else {
-                    sendMessage(chatId, "Код неверный, пожалуйста запросите код у @...");
+                    sendMessage(chatId, "Код неверный, пожалуйста запросите код у администратора");
                     sendAuthPanel(chatId);
                 }
                 break;
@@ -431,7 +430,7 @@ public class MyTelegramBot extends TelegramLongPollingBot {
     private void sendUserPanel(Long chatId) {
         SendMessage message = new SendMessage();
         message.setChatId(chatId.toString());
-        message.setText("Если вам заблокировали карту, тыкните на кнопку ниже");
+        message.setText("Если у вас произошел бан, тыкните на кнопку ниже");
         message.setReplyMarkup(UserPanel.userActions());
 
         try {
@@ -476,6 +475,7 @@ public class MyTelegramBot extends TelegramLongPollingBot {
     private void sendWelcomeMessage(Long chatId) {
         String welcomeText = "Привет! Добро пожаловать в нашего бота. Если вы являетесь админом то напишите /admin," + " после можете ознакомится с командами бота (/help)";
         sendMessage(chatId, welcomeText);
+        sendAuthPanel(chatId);
     }
 
     private void sendCancelBtn(Long chatId) {

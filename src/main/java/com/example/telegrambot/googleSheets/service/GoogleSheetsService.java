@@ -70,7 +70,7 @@ public class GoogleSheetsService {
 
     private void createSheetsIfNotExists() {
         createList("usersCode");
-        createList("cardBanned");
+        createList("Banned");
     }
 
     public void createList(String sheetName) {
@@ -104,16 +104,6 @@ public class GoogleSheetsService {
         });
     }
 
-//    public void deleteData(String range, Object value) {
-//        executionWrapper(() -> {
-//            var clearVal = new ClearValuesRequest()
-//                    .set("cardBanned" ,value);
-//            return spreadsheets.values()
-//                    .clear(spreadsheetId, range, clearVal)
-//                    .remove(value);
-//        });
-//    }
-
 
     private interface GoogleSheetsExecution<T> {
         T execute() throws IOException;
@@ -132,15 +122,4 @@ public class GoogleSheetsService {
         }
         return null;
     }
-
-
-
-    /*
-
-        sheetsService.spreadsheets().values()
-                .clear(spreadsheetId, range, body)  // Используем метод update вместо append
-                .setValueInputOption("RAW")
-                .execute();
-     */
-
 }

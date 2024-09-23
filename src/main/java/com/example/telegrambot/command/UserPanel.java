@@ -12,7 +12,7 @@ public class UserPanel {
     public static ReplyKeyboard userActions() {
 
         KeyboardRow row1 = new KeyboardRow();
-        row1.add("Карту забанили");
+        row1.add("Забанили");
 
         List<KeyboardRow> keyboard = new ArrayList<>();
         keyboard.add(row1);
