@@ -9,16 +9,21 @@ import com.example.telegrambot.repository.UserChatRepository;
 import com.example.telegrambot.repository.UserRepository;
 import com.example.telegrambot.service.MessageService;
 import com.example.telegrambot.service.impl.QuestionsServiceImpl;
+import lombok.SneakyThrows;
+import lombok.extern.log4j.Log4j;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 @Component
+@Slf4j
 public class Mailing {
 
     @Autowired
@@ -32,7 +37,7 @@ public class Mailing {
 
     private static boolean status;
 
-    @Scheduled(cron = "0 0/2 * * * *")
+    @Scheduled(cron = "0 0/1 * * * *")
     public void sendDailyMessage() {
         status = false;
         List<UserChat> chatUsers = userChatRepository.findAll();
@@ -97,18 +102,29 @@ public class Mailing {
     }
 
     public void broadcastMessage(Long chatId, String text) {
-        SendMessage message = new SendMessage();
-        message.setChatId(chatId.toString());
-        message.setText(text);
+        executionWrapper(() -> {
+            SendMessage message = new SendMessage();
+            message.setChatId(chatId.toString());
+            message.setText(text);
 
+            return myTelegramBot.execute(message);
+        }, userRepository.getUsersByChatId(chatId).getUsername());
+    }
+
+    private interface BroadcastMessageExecution<T> {
+        T execute() throws Exception;
+    }
+
+    private <T> T executionWrapper(BroadcastMessageExecution<T> execution, String username) {
         try {
-            myTelegramBot.execute(message);
-            System.out.println("Сообщение отправлено пользователю: " + chatId);
-
-        } catch (TelegramApiException e) {
-            System.err.println("Ошибка при отправке сообщения пользователю: " + chatId);
-            e.printStackTrace();
+            execution.execute();
+            log.info("Сообщение отправлено пользователю {}", username);
+        } catch (TelegramApiException err) {
+            log.error("ошибка: пользователь " + username + " заблокировал бота\n {}", err.fillInStackTrace().getMessage());
+        } catch (Exception e) {
+            log.error("Can't execute request", e);
         }
+        return null;
     }
 
 }
