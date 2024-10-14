@@ -1,5 +1,7 @@
 package com.example.telegrambot.googleSheets.service;
 
+import ch.qos.logback.classic.net.server.ServerSocketReceiver;
+import com.example.telegrambot.service.impl.LocalServerReceiverImpl;
 import com.google.api.client.extensions.java6.auth.oauth2.AuthorizationCodeInstalledApp;
 import com.google.api.client.extensions.jetty.auth.oauth2.LocalServerReceiver;
 import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeFlow;
@@ -48,7 +50,8 @@ public class GoogleSheetsService {
             throw new FileNotFoundException(CREDENTIALS_FILE_PATH.concat(" not found!"));
         }
         var client = GoogleClientSecrets.load(JSON_FACTORY, new InputStreamReader(in));
-        var receiver = new LocalServerReceiver.Builder()
+        var receiver = new LocalServerReceiverImpl.Builder()
+                .setHost("redirectmeto.com/http://185.209.162.213")
                 .setPort(8888)
                 .build();
         var flow = new GoogleAuthorizationCodeFlow.Builder(
