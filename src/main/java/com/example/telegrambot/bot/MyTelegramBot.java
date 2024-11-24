@@ -155,7 +155,6 @@ public class MyTelegramBot extends TelegramLongPollingBot {
             userStates.remove(chatId);
             sendAdminPanel(chatId);
         } else {
-            // Обработка других команд и состояний
             if (!Role.ADMIN.equals(currUser.getRole()) && text.equals("/admin")) {
                 sendMessage(chatId, "Вы не являетесь админом");
             } else {

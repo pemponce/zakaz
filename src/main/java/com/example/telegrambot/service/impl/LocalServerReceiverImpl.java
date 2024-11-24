@@ -126,7 +126,8 @@ public final class LocalServerReceiverImpl implements VerificationCodeReceiver {
             Throwables.propagateIfPossible(e);
             throw new IOException(e);
         }
-        return "https://" + this.getHost() + ":" + port + callbackPath;
+        //если надо будет ставить на сервак то https
+        return "http://" + this.getHost() + ":" + port + callbackPath;
     }
 
     /*
