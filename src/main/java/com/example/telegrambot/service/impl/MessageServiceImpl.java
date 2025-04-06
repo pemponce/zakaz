@@ -51,6 +51,7 @@ public class MessageServiceImpl implements MessageService {
                     .userId(currUser.getId())
                     .chatId(currUser.getChatId())
                     .userName(currUser.getUsername())
+                    .userGroup(currUser.getUserGroup())
                     .response_message(update.getMessage().getText())
                     .question(questionText)
                     .time(formattedTime)
@@ -62,7 +63,7 @@ public class MessageServiceImpl implements MessageService {
             if (!isBan) {
                 values = List.of(
                         List.of(saveMessage.getChatId().toString(), saveMessage.getResponse_message(),
-                                saveMessage.getQuestion(), saveMessage.getTime(), saveMessage.getUserName(), saveMessage.getUserId())
+                                saveMessage.getQuestion(), saveMessage.getTime(), saveMessage.getUserName(), saveMessage.getUserGroup(), saveMessage.getUserId())
                 );
             } else {
                 values = List.of(answers);
@@ -81,6 +82,7 @@ public class MessageServiceImpl implements MessageService {
                     .userId(currUser.getId())
                     .chatId(currUser.getChatId())
                     .userName(currUser.getUsername())
+                    .userGroup(currUser.getUserGroup())
                     .response_message(update.getMessage().getText())
                     .question("")
                     .time(formattedTime)

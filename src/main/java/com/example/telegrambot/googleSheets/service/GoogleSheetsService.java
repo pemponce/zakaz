@@ -78,7 +78,7 @@ public class GoogleSheetsService {
 
     public void createList(String sheetName, String group) {
         executionWrapper(() -> {
-            var addSheetRequest = new AddSheetRequest().setProperties(new SheetProperties().setTitle(sheetName));
+            var addSheetRequest = new AddSheetRequest().setProperties(new SheetProperties().setTitle(sheetName+group));
             var request = new Request().setAddSheet(addSheetRequest);
             var batchRequest = new BatchUpdateSpreadsheetRequest().setRequests(Collections.singletonList(request));
             return spreadsheets.batchUpdate(spreadsheetId, batchRequest).execute();

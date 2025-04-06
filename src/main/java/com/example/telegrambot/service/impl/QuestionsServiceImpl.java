@@ -106,23 +106,23 @@ public class QuestionsServiceImpl implements QuestionsService {
         return questionsRepository.getMinId();
     }
 
-    public List<Questions> getMorningQuestions() {
-        return questionsRepository.findByMorningTrue();
+    public List<Questions> getMorningQuestions(String group) {
+        return questionsRepository.findByMorningTrueAndQuestionGroup(group);
     }
 
     @Override
-    public List<Questions> getNotMorningQuestions() {
-        return questionsRepository.findByMorningFalse();
+    public List<Questions> getNotMorningQuestions(String group) {
+        return questionsRepository.findByMorningFalseAndQuestionGroup(group);
     }
 
     @Override
-    public Questions findFirstByMorningTrue() {
-        return questionsRepository.findFirstByMorningTrueOrderByIdAsc();
+    public Questions findFirstByMorningTrue(String group) {
+        return questionsRepository.findFirstByMorningTrueAndQuestionGroupOrderByIdAsc(group);
     }
 
     @Override
-    public Questions findFirstByMorningFalse() {
-        return questionsRepository.findFirstByMorningFalseOrderByIdAsc();
+    public Questions findFirstByMorningFalse(String group) {
+        return questionsRepository.findFirstByMorningFalseAndQuestionGroupOrderByIdAsc(group);
     }
 
     @Override

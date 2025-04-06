@@ -15,10 +15,10 @@ public interface QuestionsService {
     boolean setIsMorning(String question, String isMorning);
     Long getMaxId();
     Long getMinId();
-    List<Questions> getMorningQuestions();
-    List<Questions> getNotMorningQuestions();
-    Questions findFirstByMorningTrue();
-    Questions findFirstByMorningFalse();
+    List<Questions> getMorningQuestions(String group);
+    List<Questions> getNotMorningQuestions(String group);
+    Questions findFirstByMorningTrue(String group);
+    Questions findFirstByMorningFalse(String group);
 
     void saveQuestion(Questions question);
 }

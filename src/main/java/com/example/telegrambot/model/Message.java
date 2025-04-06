@@ -22,6 +22,7 @@ public class Message {
 
     @JoinColumn(table = "users")
     private String userName;
+    private String userGroup;
 
     @Column(name = "response_message")
     private String response_message;

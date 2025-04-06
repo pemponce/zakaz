@@ -132,6 +132,7 @@ public class MyTelegramBot extends TelegramLongPollingBot {
                 }
                 Questions newQuestion = new Questions();
                 newQuestion.setQuestion(text);
+                newQuestion.setQuestionGroup(currUser.getUserGroup());
                 questionsService.saveQuestion(newQuestion);
                 sendMessage(chatId, "Новый вопрос добавлен.");
                 userStates.remove(chatId);
@@ -177,8 +178,8 @@ public class MyTelegramBot extends TelegramLongPollingBot {
                 } else {
                     UserChat user = userChatRepository.getUserChatByChatId(chatId);
                     List<Questions> questionsList = Mailing.morningQuestion() ?
-                            new ArrayList<>(questionsService.getMorningQuestions()) :
-                            new ArrayList<>(questionsService.getNotMorningQuestions());
+                            new ArrayList<>(questionsService.getMorningQuestions(currUser.getUserGroup())) :
+                            new ArrayList<>(questionsService.getNotMorningQuestions(currUser.getUserGroup()));
 
                     if (user.isWaitingForResponse()) {
                         if (!ban) {
