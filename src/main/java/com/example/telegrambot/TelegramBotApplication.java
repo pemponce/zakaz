@@ -21,4 +21,5 @@ public class TelegramBotApplication {
    - ATTENTION!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    - Реализовать вывод кодов владльцу бота для пользователей ✅
    - реализовать настройку параметра в вопросе типа утренний или нет ✅️
+   - https://docs.google.com/spreadsheets/d/181N49nhhplDr52neZNqW_2O4d4Q9QwfXK4oEUsdt1l4/edit?gid=1198020588#gid=1198020588
  */

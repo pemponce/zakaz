@@ -62,6 +62,25 @@ public class UserServiceImpl implements UserService {
         return userRepository.save(user);
     }
 
+    @Override
+    public void updateUserGroup(String username, String group) {
+        Users user = userRepository.getUsersByUsername(username);
+        if (user != null) {
+            user.setUserGroup(group);
+            userRepository.save(user);
+
+            List<List<Object>> values = List.of(
+                    List.of(user.getUsername(), user.getVerificationCode(), group)
+            );
+            String range = "usersCode!A1";
+            try {
+                googleSheetsService.updateData(range, values);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
 
 
     @Override

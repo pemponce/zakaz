@@ -2,6 +2,7 @@ package com.example.telegrambot.bot;
 
 import com.example.telegrambot.command.AdminPanel;
 import com.example.telegrambot.command.AuthPanel;
+import com.example.telegrambot.command.GroupPanel;
 import com.example.telegrambot.command.UserPanel;
 import com.example.telegrambot.googleSheets.service.GoogleSheetsService;
 import com.example.telegrambot.help.Mailing;
@@ -85,7 +86,7 @@ public class MyTelegramBot extends TelegramLongPollingBot {
                 Users user = userService.createUser(update);
 
                 try {
-                    googleSheetsService.createList(user.getUsername());
+                    googleSheetsService.createList(user.getUsername(), user.getUserGroup());
                     sendWelcomeMessage(chatId);
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -101,96 +102,116 @@ public class MyTelegramBot extends TelegramLongPollingBot {
         }
     }
 
+    private void handleSetUserGroup(String text, Long chatId, Users currUser) {
+        userService.updateUserGroup(currUser.getUsername(), text);
+        userStates.remove(chatId);
+        sendMessage(chatId, "Группа сохранена: " + text);
+    }
+
     private void handleVerifiedUser(String text, Long chatId, Users currUser, Update update) {
         String userState = userStates.getOrDefault(chatId, "");
 
-
-        if ("WAITING_FOR_NEW_QUESTION".equals(userState)) {
-
-            if (text.equals("Отмена")) {
-                sendMessage(chatId, "Отмена действия");
-                userStates.remove(chatId);
-                sendAdminPanel(chatId);
-                return;
-            }
-            Questions newQuestion = new Questions();
-            newQuestion.setQuestion(text);
-            questionsService.saveQuestion(newQuestion);
-            sendMessage(chatId, "Новый вопрос добавлен.");
-            userStates.remove(chatId);
-            sendAdminPanel(chatId);
-        } else if ("WAITING_FOR_NEW_BAN_QUESTION".equals(userState)) {
-            if (text.equals("Отмена")) {
-                sendMessage(chatId, "Отмена действия");
-                userStates.remove(chatId);
-                sendAdminPanel(chatId);
-                return;
-            }
-            BanQuestions newBanQuestion = new BanQuestions();
-            newBanQuestion.setQuestion(text);
-            banQuestionsService.createQuestion(newBanQuestion.getQuestion());
-            sendMessage(chatId, "Новый вопрос для бана добавлен.");
-            userStates.remove(chatId);
-            sendAdminPanel(chatId);
-        } else if ("WAITING_FOR_QUESTION_TO_DELETE".equals(userState)) {
-            if (text.equals("Отмена")) {
-                sendMessage(chatId, "Отмена действия");
-                userStates.remove(chatId);
-                sendAdminPanel(chatId);
-                return;
-            }
-            questionsService.deleteQuestion(text);
-            sendMessage(chatId, "Вопрос удалён.");
-            userStates.remove(chatId);
-            sendAdminPanel(chatId);
-        } else if ("WAITING_FOR_BAN_QUESTION_TO_DELETE".equals(userState)) {
-            if (text.equals("Отмена")) {
-                sendMessage(chatId, "Отмена действия");
-                userStates.remove(chatId);
-                sendAdminPanel(chatId);
-                return;
-            }
-            banQuestionsService.deleteQuestion(text);
-            sendMessage(chatId, "Вопрос для бана удалён.");
-            userStates.remove(chatId);
-            sendAdminPanel(chatId);
-        } else {
-            if (!Role.ADMIN.equals(currUser.getRole()) && text.equals("/admin")) {
-                sendMessage(chatId, "Вы не являетесь админом");
+        if (currUser.getUserGroup() == null) {
+            if ("WAITING_FOR_GROUP".equals(userStates.get(chatId))) {
+                handleSetUserGroup(text, chatId, currUser);
+            } else if (text.equals("Указать группу")) {
+                userStates.put(chatId, "WAITING_FOR_GROUP");
+                sendMessage(chatId, "Введите номер своей группы в формате: 09-252");
             } else {
-                UserChat user = userChatRepository.getUserChatByChatId(chatId);
-                List<Questions> questionsList = Mailing.morningQuestion() ?
-                        new ArrayList<>(questionsService.getMorningQuestions()) :
-                        new ArrayList<>(questionsService.getNotMorningQuestions());
+                sendGroupPanel(chatId);
+            }
+            return;
+        } else {
+            if ("WAITING_FOR_NEW_QUESTION".equals(userState)) {
 
-                if (user.isWaitingForResponse()) {
-                    if (!ban) {
-                        userRequest(update, chatId, currUser, user, text, questionsList, null);
-                    } else {
-                        List<BanQuestions> banQuestionsList = new ArrayList<>(banQuestionsService.getAll());
-                        userRequest(update, chatId, currUser, user, text, null, banQuestionsList);
-
-                    }
+                if (text.equals("Отмена")) {
+                    sendMessage(chatId, "Отмена действия");
+                    userStates.remove(chatId);
+                    sendAdminPanel(chatId);
+                    return;
+                }
+                Questions newQuestion = new Questions();
+                newQuestion.setQuestion(text);
+                questionsService.saveQuestion(newQuestion);
+                sendMessage(chatId, "Новый вопрос добавлен.");
+                userStates.remove(chatId);
+                sendAdminPanel(chatId);
+            } else if ("WAITING_FOR_NEW_BAN_QUESTION".equals(userState)) {
+                if (text.equals("Отмена")) {
+                    sendMessage(chatId, "Отмена действия");
+                    userStates.remove(chatId);
+                    sendAdminPanel(chatId);
+                    return;
+                }
+                BanQuestions newBanQuestion = new BanQuestions();
+                newBanQuestion.setQuestion(text);
+                banQuestionsService.createQuestion(newBanQuestion.getQuestion());
+                sendMessage(chatId, "Новый вопрос для бана добавлен.");
+                userStates.remove(chatId);
+                sendAdminPanel(chatId);
+            } else if ("WAITING_FOR_QUESTION_TO_DELETE".equals(userState)) {
+                if (text.equals("Отмена")) {
+                    sendMessage(chatId, "Отмена действия");
+                    userStates.remove(chatId);
+                    sendAdminPanel(chatId);
+                    return;
+                }
+                questionsService.deleteQuestion(text);
+                sendMessage(chatId, "Вопрос удалён.");
+                userStates.remove(chatId);
+                sendAdminPanel(chatId);
+            } else if ("WAITING_FOR_BAN_QUESTION_TO_DELETE".equals(userState)) {
+                if (text.equals("Отмена")) {
+                    sendMessage(chatId, "Отмена действия");
+                    userStates.remove(chatId);
+                    sendAdminPanel(chatId);
+                    return;
+                }
+                banQuestionsService.deleteQuestion(text);
+                sendMessage(chatId, "Вопрос для бана удалён.");
+                userStates.remove(chatId);
+                sendAdminPanel(chatId);
+            } else {
+                if (!Role.ADMIN.equals(currUser.getRole()) && text.equals("/admin")) {
+                    sendMessage(chatId, "Вы не являетесь админом");
                 } else {
-                    if (currUser.getRole().equals(Role.ADMIN)) {
-                        handleAdminCommands(text, chatId);
-                    } else {
-                        if (text.equals("Забанили")) {
-                            long minId = banQuestionsService.getMinId();
-                            user.setCurrentQuestionId(minId);
-                            user.setWaitingForResponse(true);
-                            userChatRepository.save(user);
-                            sendMessage(chatId, banQuestionsService.getQuestion(minId).getQuestion());
-                            ban = true;
-                        } else {
-                            sendMessage(chatId, "Дождитесь 23:50 чтобы ответить на вопросы");
-                            sendUserPanel(chatId);
+                    UserChat user = userChatRepository.getUserChatByChatId(chatId);
+                    List<Questions> questionsList = Mailing.morningQuestion() ?
+                            new ArrayList<>(questionsService.getMorningQuestions()) :
+                            new ArrayList<>(questionsService.getNotMorningQuestions());
 
+                    if (user.isWaitingForResponse()) {
+                        if (!ban) {
+                            userRequest(update, chatId, currUser, user, text, questionsList, null);
+                        } else {
+                            List<BanQuestions> banQuestionsList = new ArrayList<>(banQuestionsService.getAll());
+                            userRequest(update, chatId, currUser, user, text, null, banQuestionsList);
+
+                        }
+                    } else {
+                        if (currUser.getRole().equals(Role.ADMIN)) {
+                            handleAdminCommands(text, chatId);
+                        } else {
+
+                            if (text.equals("Забанили")) {
+                                long minId = banQuestionsService.getMinId();
+                                user.setCurrentQuestionId(minId);
+                                user.setWaitingForResponse(true);
+                                userChatRepository.save(user);
+                                sendMessage(chatId, banQuestionsService.getQuestion(minId).getQuestion());
+                                ban = true;
+                            } else {
+                                sendMessage(chatId, "Дождитесь 23:50 чтобы ответить на вопросы");
+                                sendUserPanel(chatId);
+
+                            }
                         }
                     }
                 }
             }
+
         }
+
     }
 
     private void userRequest(Update update, Long chatId, Users currUser, UserChat user,
@@ -341,11 +362,13 @@ public class MyTelegramBot extends TelegramLongPollingBot {
 
     private void handleNonVerifiedUser(String text, Long chatId, Users currUser) {
         String userState = userStates.getOrDefault(chatId, "");
+
         switch (userState) {
             case "AuthUser":
                 if (userService.existsByVerificationCode(Integer.parseInt(text), currUser)) {
                     userService.verifyUser(Integer.parseInt(text), currUser);
                     sendMessage(chatId, "Вы успешно авторизовались");
+                    sendGroupPanel(chatId);
                 } else {
                     sendMessage(chatId, "Код неверный, пожалуйста запросите код у администратора");
                     sendAuthPanel(chatId);
@@ -353,7 +376,7 @@ public class MyTelegramBot extends TelegramLongPollingBot {
                 break;
             default:
                 if (text.equals("Авторизоваться")) {
-                    sendMessage(chatId, "Введите 4х значный код");
+                    sendMessage(chatId, "Введите 4-значный код");
                     userStates.put(chatId, "AuthUser");
                 } else {
                     sendAuthPanel(chatId);
@@ -463,6 +486,19 @@ public class MyTelegramBot extends TelegramLongPollingBot {
         message.setChatId(chatId.toString());
         message.setText("Вы не авторизованы. Пожалуйста, авторизуйтесь:");
         message.setReplyMarkup(AuthPanel.authAction());
+
+        try {
+            execute(message);
+        } catch (TelegramApiException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void sendGroupPanel(Long chatId) {
+        SendMessage message = new SendMessage();
+        message.setChatId(chatId.toString());
+        message.setText("Вы не указали свою группу, пожалуйста укажите ее в формате 09-252");
+        message.setReplyMarkup(GroupPanel.groupAction());
 
         try {
             execute(message);

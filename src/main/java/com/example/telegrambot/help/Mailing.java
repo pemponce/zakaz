@@ -46,7 +46,7 @@ public class Mailing {
             Long chatId = chatUser.getChatId();
             Users user = userRepository.getUsersByChatId(chatId);
 
-            if (!user.getRole().equals(Role.ADMIN) && user.isVerify()) {
+            if (!user.getRole().equals(Role.ADMIN) && user.isVerify() && questionsService.findFirstByMorningFalse() != null) {
                 broadcastMessage(chatId, "Пожалуйста ответьте на все вопросы");
 
                 Questions currentQuestion = questionsService.findFirstByMorningFalse();
@@ -60,7 +60,11 @@ public class Mailing {
                 if (!user.isVerify()) {
                     broadcastMessage(chatId, "Авторизируйтесь! следующая рассылка будет в 10:30");
 
-                } else {
+                }
+                if (user.isVerify() && questionsService.findFirstByMorningFalse() == null) {
+                    broadcastMessage(chatId, "Дневних вопросов сегодня нет");
+
+                }else {
                     broadcastMessage(chatId, "Рассылка началась");
                 }
             }
@@ -76,7 +80,7 @@ public class Mailing {
             Long chatId = chatUser.getChatId();
             Users user = userRepository.getUsersByChatId(chatId);
 
-            if (!user.getRole().equals(Role.ADMIN) && user.isVerify()) {
+            if (!user.getRole().equals(Role.ADMIN) && user.isVerify() && questionsService.findFirstByMorningTrue() != null) {
                 broadcastMessage(chatId, "Пожалуйста ответьте на все вопросы");
 
                 Questions currentQuestion = questionsService.findFirstByMorningTrue();
@@ -89,6 +93,10 @@ public class Mailing {
             } else {
                 if (!user.isVerify()) {
                     broadcastMessage(chatId, "Авторизируйтесь! следующая рассылка будет в 10:30");
+
+                }
+                if (user.isVerify() && questionsService.findFirstByMorningTrue() == null) {
+                    broadcastMessage(chatId, "Утренних вопросов сегодня нет");
 
                 } else {
                     broadcastMessage(chatId, "Рассылка началась");

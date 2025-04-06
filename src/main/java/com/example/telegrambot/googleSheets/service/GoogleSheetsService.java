@@ -72,11 +72,11 @@ public class GoogleSheetsService {
     }
 
     private void createSheetsIfNotExists() {
-        createList("usersCode");
-        createList("Banned");
+        createList("usersCode", "");
+        createList("Banned", "");
     }
 
-    public void createList(String sheetName) {
+    public void createList(String sheetName, String group) {
         executionWrapper(() -> {
             var addSheetRequest = new AddSheetRequest().setProperties(new SheetProperties().setTitle(sheetName));
             var request = new Request().setAddSheet(addSheetRequest);

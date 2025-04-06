@@ -21,6 +21,7 @@ public class Users {
     private boolean isVerify;
     private Role role;
 
+    private String userGroup;
     @JoinColumn(table = "user_chat")
     private Long chatId;
 }
