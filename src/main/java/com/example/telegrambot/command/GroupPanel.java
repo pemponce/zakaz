@@ -14,6 +14,4 @@ public class GroupPanel {
             return getReplyKeyboard(row1);
         }
 
-
-
 }

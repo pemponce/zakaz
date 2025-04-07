@@ -53,16 +53,16 @@ public class AdminPanel {
         return keyboardMarkup;
     }
 
-    public static InlineKeyboardMarkup questionTypeButtons(String action) {
+    public static InlineKeyboardMarkup questionAndAlertTypeButtons(String action) {
         InlineKeyboardButton normalQuestionsBtn = new InlineKeyboardButton();
         normalQuestionsBtn.setText("Обычные вопросы");
         normalQuestionsBtn.setCallbackData(action + "_normal");
 
-        InlineKeyboardButton banQuestionsBtn = new InlineKeyboardButton();
-        banQuestionsBtn.setText("Вопросы для бана");
-        banQuestionsBtn.setCallbackData(action + "_ban");
+        InlineKeyboardButton alertsBtn = new InlineKeyboardButton();
+        alertsBtn.setText("Оповещения");
+        alertsBtn.setCallbackData(action + "_info");
 
-        List<InlineKeyboardButton> row = List.of(normalQuestionsBtn, banQuestionsBtn);
+        List<InlineKeyboardButton> row = List.of(normalQuestionsBtn, alertsBtn);
         List<List<InlineKeyboardButton>> rows = List.of(row);
 
         InlineKeyboardMarkup markup = new InlineKeyboardMarkup();

@@ -10,14 +10,19 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
+@Entity
 @AllArgsConstructor
 @NoArgsConstructor
-@Entity
 @Builder
-public class BanQuestions {
+public class Alerts {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String question;
+    private String content;
+
+    private String alertGroup;
+
+    private boolean active;
 }

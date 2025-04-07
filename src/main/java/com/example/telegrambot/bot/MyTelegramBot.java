@@ -6,14 +6,14 @@ import com.example.telegrambot.command.GroupPanel;
 import com.example.telegrambot.command.UserPanel;
 import com.example.telegrambot.googleSheets.service.GoogleSheetsService;
 import com.example.telegrambot.help.Mailing;
-import com.example.telegrambot.model.BanQuestions;
+import com.example.telegrambot.model.Alerts;
 import com.example.telegrambot.model.Questions;
 import com.example.telegrambot.model.UserChat;
 import com.example.telegrambot.model.Users;
 import com.example.telegrambot.model.enumRole.Role;
 import com.example.telegrambot.repository.UserChatRepository;
 import com.example.telegrambot.repository.UserRepository;
-import com.example.telegrambot.service.BanQuestionsService;
+import com.example.telegrambot.service.AlertsService;
 import com.example.telegrambot.service.MessageService;
 import com.example.telegrambot.service.QuestionsService;
 import com.example.telegrambot.service.impl.UserServiceImpl;
@@ -28,6 +28,8 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 @Component
 public class MyTelegramBot extends TelegramLongPollingBot {
@@ -42,13 +44,13 @@ public class MyTelegramBot extends TelegramLongPollingBot {
     private UserRepository userRepository;
 
     @Autowired
+    private AlertsService alertsService;
+
+    @Autowired
     private UserServiceImpl userService;
 
     @Autowired
     private QuestionsService questionsService;
-
-    @Autowired
-    private BanQuestionsService banQuestionsService;
 
     @Autowired
     private MessageService messageService;
@@ -144,12 +146,12 @@ public class MyTelegramBot extends TelegramLongPollingBot {
                     sendAdminPanel(chatId);
                     return;
                 }
-                BanQuestions newBanQuestion = new BanQuestions();
-                newBanQuestion.setQuestion(text);
-                banQuestionsService.createQuestion(newBanQuestion.getQuestion());
-                sendMessage(chatId, "Новый вопрос для бана добавлен.");
+                //
+                alertsService.createAlert(text, currUser.getUserGroup());
+                sendMessage(chatId, "Новое обьявление добавлено.");
                 userStates.remove(chatId);
                 sendAdminPanel(chatId);
+
             } else if ("WAITING_FOR_QUESTION_TO_DELETE".equals(userState)) {
                 if (text.equals("Отмена")) {
                     sendMessage(chatId, "Отмена действия");
@@ -168,10 +170,12 @@ public class MyTelegramBot extends TelegramLongPollingBot {
                     sendAdminPanel(chatId);
                     return;
                 }
-                banQuestionsService.deleteQuestion(text);
-                sendMessage(chatId, "Вопрос для бана удалён.");
+
+                alertsService.deleteAlert(text, currUser.getUserGroup());
+                sendMessage(chatId, "Обьявление удалено.");
                 userStates.remove(chatId);
                 sendAdminPanel(chatId);
+
             } else {
                 if (!Role.ADMIN.equals(currUser.getRole()) && text.equals("/admin")) {
                     sendMessage(chatId, "Вы не являетесь админом");
@@ -182,87 +186,44 @@ public class MyTelegramBot extends TelegramLongPollingBot {
                             new ArrayList<>(questionsService.getNotMorningQuestions(currUser.getUserGroup()));
 
                     if (user.isWaitingForResponse()) {
-                        if (!ban) {
-                            userRequest(update, chatId, currUser, user, text, questionsList, null);
-                        } else {
-                            List<BanQuestions> banQuestionsList = new ArrayList<>(banQuestionsService.getAll());
-                            userRequest(update, chatId, currUser, user, text, null, banQuestionsList);
-
-                        }
+                        userRequest(update, chatId, currUser, user, text, questionsList);
                     } else {
                         if (currUser.getRole().equals(Role.ADMIN)) {
                             handleAdminCommands(text, chatId);
                         } else {
-
-                            if (text.equals("Забанили")) {
-                                long minId = banQuestionsService.getMinId();
-                                user.setCurrentQuestionId(minId);
-                                user.setWaitingForResponse(true);
-                                userChatRepository.save(user);
-                                sendMessage(chatId, banQuestionsService.getQuestion(minId).getQuestion());
-                                ban = true;
-                            } else {
-                                sendMessage(chatId, "Дождитесь 23:50 чтобы ответить на вопросы");
-                                sendUserPanel(chatId);
-
-                            }
+                            sendMessage(chatId, "Дождитесь 23:50 чтобы ответить на вопросы");
+                            sendUserPanel(chatId);
                         }
                     }
                 }
             }
-
         }
-
     }
 
     private void userRequest(Update update, Long chatId, Users currUser, UserChat user,
-                             String text, @Nullable List<Questions> questionsList, @Nullable List<BanQuestions> banQuestionsList) {
+                             String text, @Nullable List<Questions> questionsList) {
 
         long currentQuestionId = user.getCurrentQuestionId();
         long maxId;
         long minId;
         boolean flag = false;
 
-        Object nextQuestion;
-        if (questionsList != null) {
-            maxId = questionsService.getMaxId();
-            minId = questionsService.getMinId();
+        Questions nextQuestion;
+        maxId = questionsService.getMaxId();
+        minId = questionsService.getMinId();
 
-            nextQuestion = questionsList.stream()
-                    .filter(q -> q.getId() > currentQuestionId && q.getId() <= maxId)
-                    .findFirst()
-                    .orElse(null);
-            sendMessage(chatId, "Ваш ответ записан\n```\n" + text + "\n```");
+        nextQuestion = questionsList.stream()
+                .filter(q -> q.getId() > currentQuestionId && q.getId() <= maxId)
+                .findFirst()
+                .orElse(null);
+        sendMessage(chatId, "Ваш ответ записан\n```\n" + text + "\n```");
 
-            messageService.saveMessage(update, null, currUser, flag);
-
-        } else {
-
-
-            maxId = banQuestionsService.getMaxId();
-            minId = banQuestionsService.getMinId();
-
-            nextQuestion = banQuestionsList.stream()
-                    .filter(q -> q.getId() > currentQuestionId && q.getId() <= maxId)
-                    .findFirst()
-                    .orElse(null);
-
-            flag = true;
-            sendMessage(chatId, "Ваш ответ записан\n```\n" + text + "\n```");
-
-            answers.add(text);
-
-        }
+        messageService.saveMessage(update, null, currUser, flag);
 
 
         if (nextQuestion != null) {
-            if (nextQuestion instanceof Questions) {
-                user.setCurrentQuestionId(((Questions) nextQuestion).getId());
-                sendMessage(chatId, ((Questions) nextQuestion).getQuestion());
-            } else {
-                user.setCurrentQuestionId(((BanQuestions) nextQuestion).getId());
-                sendMessage(chatId, ((BanQuestions) nextQuestion).getQuestion());
-            }
+            user.setCurrentQuestionId(nextQuestion.getId());
+            sendMessage(chatId, nextQuestion.getQuestion());
 
             user.setWaitingForResponse(true);
             userChatRepository.save(user);
@@ -397,7 +358,7 @@ public class MyTelegramBot extends TelegramLongPollingBot {
                 userStates.put(chatId, "WAITING_FOR_NEW_QUESTION");
                 sendMessage(chatId, "Пожалуйста, введите новый обычный вопрос:");
             }
-            case "add_ban" -> {
+            case "add_info" -> {
                 sendCancelBtn(chatId);
                 userStates.put(chatId, "WAITING_FOR_NEW_BAN_QUESTION");
                 sendMessage(chatId, "Пожалуйста, введите новый вопрос для бана:");
@@ -407,7 +368,7 @@ public class MyTelegramBot extends TelegramLongPollingBot {
                 userStates.put(chatId, "WAITING_FOR_QUESTION_TO_DELETE");
                 sendMessage(chatId, "Введите обычный вопрос, который хотите удалить:");
             }
-            case "delete_ban" -> {
+            case "delete_info" -> {
                 sendCancelBtn(chatId);
                 userStates.put(chatId, "WAITING_FOR_BAN_QUESTION_TO_DELETE");
                 sendMessage(chatId, "Введите вопрос для бана, который хотите удалить:");
@@ -417,9 +378,18 @@ public class MyTelegramBot extends TelegramLongPollingBot {
                 sendMessage(chatId, questionsService.getAllQuestions());
                 sendAdminPanel(chatId);
             }
-            case "list_ban" -> {
-                sendMessage(chatId, "Вот список всех вопросов для бана:");
-                sendMessage(chatId, banQuestionsService.getAllQuestions());
+            case "list_info" -> {
+                sendMessage(chatId, "Вот список всех оповещений:");
+
+                List<Alerts> alerts = alertsService.getAllAlerts(userRepository.getUsersByChatId(chatId).getUserGroup());
+
+                sendMessage(chatId, "Оповещения для группы - " + userRepository.getUsersByChatId(chatId).getUserGroup());
+
+                String messageText = IntStream.range(0, alerts.size())
+                        .mapToObj(i -> (i++) + ". " + alerts.get(i).getContent())
+                        .collect(Collectors.joining("\n"));
+                sendMessage(chatId, messageText);
+
                 sendAdminPanel(chatId);
             }
             default -> {
@@ -473,7 +443,7 @@ public class MyTelegramBot extends TelegramLongPollingBot {
             default -> "Ошибка!";
         };
         message.setText(text);
-        message.setReplyMarkup(AdminPanel.questionTypeButtons(action));
+        message.setReplyMarkup(AdminPanel.questionAndAlertTypeButtons(action));
 
         try {
             execute(message);

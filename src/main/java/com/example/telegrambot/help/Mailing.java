@@ -45,7 +45,6 @@ public class Mailing {
         for (UserChat chatUser : chatUsers) {
             Long chatId = chatUser.getChatId();
             Users user = userRepository.getUsersByChatId(chatId);
-
             if (!user.getRole().equals(Role.ADMIN) && user.isVerify() && questionsService.findFirstByMorningFalse(user.getUserGroup()) != null) {
                 broadcastMessage(chatId, "Пожалуйста ответьте на все вопросы");
 

@@ -6,7 +6,6 @@ import com.example.telegrambot.model.Message;
 import com.example.telegrambot.model.Users;
 import com.example.telegrambot.repository.MessageRepository;
 import com.example.telegrambot.repository.UserChatRepository;
-import com.example.telegrambot.service.BanQuestionsService;
 import com.example.telegrambot.service.MessageService;
 import com.example.telegrambot.service.QuestionsService;
 import lombok.AllArgsConstructor;
@@ -24,8 +23,6 @@ public class MessageServiceImpl implements MessageService {
     private GoogleSheetsService googleSheetsService;
     private final MessageRepository messageRepository;
     private final QuestionsService questionsService;
-    private final BanQuestionsService banQuestionsService;
-
     private final UserChatRepository userChatRepository;
 
 
@@ -39,13 +36,8 @@ public class MessageServiceImpl implements MessageService {
             String questionText;
             String range;
 
-            if (!isBan) {
-                questionText = questionsService.getQuestion(questionId).getQuestion();
-                range = currUser.getUsername() + "!A1";
-            } else {
-                questionText = banQuestionsService.getQuestion(questionId).getQuestion();
-                range = "Banned!B1";
-            }
+            questionText = questionsService.getQuestion(questionId).getQuestion();
+            range = currUser.getUsername() + "!A1";
 
             Message saveMessage = Message.builder()
                     .userId(currUser.getId())
