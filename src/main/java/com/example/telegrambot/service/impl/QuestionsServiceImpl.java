@@ -3,6 +3,7 @@ package com.example.telegrambot.service.impl;
 import com.example.telegrambot.model.Questions;
 import com.example.telegrambot.repository.QuestionsRepository;
 import com.example.telegrambot.service.QuestionsService;
+import com.fasterxml.jackson.databind.node.LongNode;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -50,7 +51,20 @@ public class QuestionsServiceImpl implements QuestionsService {
     }
 
     @Override
-    public String getAllQuestions() {
+    public void deleteAllQuestions() {
+        try {
+            var allQuestions = getAllQuestions().stream().map(Questions::getId).toList();
+            for (Long id: allQuestions) {
+
+                questionsRepository.deleteById(id);
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Список вопросов пуст", e);
+        }
+    }
+
+    @Override
+    public String getAllQuestionsContent() {
         String res = "";
         List<Questions> questions = new ArrayList<>(questionsRepository.findAll());
         int counter = 1;
@@ -104,6 +118,11 @@ public class QuestionsServiceImpl implements QuestionsService {
     @Override
     public Long getMinId() {
         return questionsRepository.getMinId();
+    }
+
+    @Override
+    public List<Questions> getAllQuestions() {
+        return questionsRepository.findAll();
     }
 
     public List<Questions> getMorningQuestions(String group) {

@@ -1,6 +1,7 @@
 package com.example.telegrambot.help;
 
 import com.example.telegrambot.bot.MyTelegramBot;
+import com.example.telegrambot.executors.Executor;
 import com.example.telegrambot.model.Questions;
 import com.example.telegrambot.model.UserChat;
 import com.example.telegrambot.model.Users;
@@ -8,7 +9,9 @@ import com.example.telegrambot.model.enumRole.Role;
 import com.example.telegrambot.repository.UserChatRepository;
 import com.example.telegrambot.repository.UserRepository;
 import com.example.telegrambot.service.MessageService;
+import com.example.telegrambot.service.UserService;
 import com.example.telegrambot.service.impl.QuestionsServiceImpl;
+import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.log4j.Log4j;
 import lombok.extern.slf4j.Slf4j;
@@ -24,14 +27,14 @@ import java.util.List;
 
 @Component
 @Slf4j
+@AllArgsConstructor
 public class Mailing {
 
-    @Autowired
-    private MyTelegramBot myTelegramBot;
+    private Executor executor;
     @Autowired
     private UserChatRepository userChatRepository;
     @Autowired
-    private UserRepository userRepository;
+    private UserService userService;
     @Autowired
     private QuestionsServiceImpl questionsService;
 
@@ -44,27 +47,27 @@ public class Mailing {
 
         for (UserChat chatUser : chatUsers) {
             Long chatId = chatUser.getChatId();
-            Users user = userRepository.getUsersByChatId(chatId);
+            Users user = userService.getUsersByChatId(chatId);
             if (!user.getRole().equals(Role.ADMIN) && user.isVerify() && questionsService.findFirstByMorningFalse(user.getUserGroup()) != null) {
-                broadcastMessage(chatId, "Пожалуйста ответьте на все вопросы");
+                executor.broadcastMessage(chatId, "Пожалуйста ответьте на все вопросы");
 
                 Questions currentQuestion = questionsService.findFirstByMorningFalse(user.getUserGroup());
                 chatUser.setCurrentQuestionId(currentQuestion.getId());
                 chatUser.setWaitingForResponse(true);
                 userChatRepository.save(chatUser);
 
-                broadcastMessage(chatId, currentQuestion.getQuestion());
+                executor.broadcastMessage(chatId, currentQuestion.getQuestion());
 
             } else {
                 if (!user.isVerify()) {
-                    broadcastMessage(chatId, "Авторизируйтесь! следующая рассылка будет в 10:30");
+                    executor.broadcastMessage(chatId, "Авторизируйтесь! следующая рассылка будет в 10:30");
 
                 }
                 if (user.isVerify() && questionsService.findFirstByMorningFalse(user.getUserGroup()) == null) {
-                    broadcastMessage(chatId, "Дневних вопросов сегодня нет");
+                    executor.broadcastMessage(chatId, "Дневних вопросов сегодня нет");
 
                 }else {
-                    broadcastMessage(chatId, "Рассылка началась");
+                    executor.broadcastMessage(chatId, "Рассылка началась");
                 }
             }
         }
@@ -77,28 +80,28 @@ public class Mailing {
 
         for (UserChat chatUser : chatUsers) {
             Long chatId = chatUser.getChatId();
-            Users user = userRepository.getUsersByChatId(chatId);
+            Users user = userService.getUsersByChatId(chatId);
 
             if (!user.getRole().equals(Role.ADMIN) && user.isVerify() && questionsService.findFirstByMorningTrue(user.getUserGroup()) != null) {
-                broadcastMessage(chatId, "Пожалуйста ответьте на все вопросы");
+                executor.broadcastMessage(chatId, "Пожалуйста ответьте на все вопросы");
 
                 Questions currentQuestion = questionsService.findFirstByMorningTrue(user.getUserGroup());
                 chatUser.setCurrentQuestionId(currentQuestion.getId());
                 chatUser.setWaitingForResponse(true);
                 userChatRepository.save(chatUser);
 
-                broadcastMessage(chatId, currentQuestion.getQuestion());
+                executor.broadcastMessage(chatId, currentQuestion.getQuestion());
 
             } else {
                 if (!user.isVerify()) {
-                    broadcastMessage(chatId, "Авторизируйтесь! следующая рассылка будет в 10:30");
+                    executor.broadcastMessage(chatId, "Авторизируйтесь! следующая рассылка будет в 10:30");
 
                 }
                 if (user.isVerify() && questionsService.findFirstByMorningTrue(user.getUserGroup()) == null) {
-                    broadcastMessage(chatId, "Утренних вопросов сегодня нет");
+                    executor.broadcastMessage(chatId, "Утренних вопросов сегодня нет");
 
                 } else {
-                    broadcastMessage(chatId, "Рассылка началась");
+                    executor.broadcastMessage(chatId, "Рассылка началась");
                 }
             }
         }
@@ -106,32 +109,6 @@ public class Mailing {
 
     public static boolean morningQuestion() {
         return status;
-    }
-
-    public void broadcastMessage(Long chatId, String text) {
-        executionWrapper(() -> {
-            SendMessage message = new SendMessage();
-            message.setChatId(chatId.toString());
-            message.setText(text);
-
-            return myTelegramBot.execute(message);
-        }, userRepository.getUsersByChatId(chatId).getUsername());
-    }
-
-    private interface BroadcastMessageExecution<T> {
-        T execute() throws Exception;
-    }
-
-    private <T> T executionWrapper(BroadcastMessageExecution<T> execution, String username) {
-        try {
-            execution.execute();
-            log.info("Сообщение отправлено пользователю {}", username);
-        } catch (TelegramApiException err) {
-            log.error("ошибка: пользователь " + username + " заблокировал бота\n {}", err.fillInStackTrace().getMessage());
-        } catch (Exception e) {
-            log.error("Can't execute request", e);
-        }
-        return null;
     }
 
 }

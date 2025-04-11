@@ -10,11 +10,13 @@ public interface QuestionsService {
     Questions getQuestion(Long id);
     boolean createQuestion(String question);
     void deleteQuestion(String question);
-    String getAllQuestions();
+    void deleteAllQuestions();
+    String getAllQuestionsContent();
     List<Questions> getAll();
     boolean setIsMorning(String question, String isMorning);
     Long getMaxId();
     Long getMinId();
+    List<Questions> getAllQuestions();
     List<Questions> getMorningQuestions(String group);
     List<Questions> getNotMorningQuestions(String group);
     Questions findFirstByMorningTrue(String group);

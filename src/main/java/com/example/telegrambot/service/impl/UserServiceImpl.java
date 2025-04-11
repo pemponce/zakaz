@@ -96,6 +96,11 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public Users getUsersByChatId(Long chatId) {
+        return userRepository.getUsersByChatId(chatId);
+    }
+
+    @Override
     public boolean setRole(String username, String role) {
         boolean flag = true;
 

@@ -48,7 +48,6 @@ public class MyTelegramBot extends TelegramLongPollingBot {
 
     @Autowired
     private UserServiceImpl userService;
-
     @Autowired
     private QuestionsService questionsService;
 
@@ -375,7 +374,7 @@ public class MyTelegramBot extends TelegramLongPollingBot {
             }
             case "list_normal" -> {
                 sendMessage(chatId, "Вот список всех обычных вопросов:");
-                sendMessage(chatId, questionsService.getAllQuestions());
+                sendMessage(chatId, questionsService.getAllQuestionsContent());
                 sendAdminPanel(chatId);
             }
             case "list_info" -> {
@@ -468,7 +467,7 @@ public class MyTelegramBot extends TelegramLongPollingBot {
     private void sendGroupPanel(Long chatId) {
         SendMessage message = new SendMessage();
         message.setChatId(chatId.toString());
-        message.setText("Вы не указали свою группу, пожалуйста укажите ее в формате 09-252");
+        message.setText("Вы не указали свою группу, пожалуйста укажите ее");
         message.setReplyMarkup(GroupPanel.groupAction());
 
         try {
