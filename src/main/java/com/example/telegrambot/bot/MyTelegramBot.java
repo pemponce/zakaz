@@ -145,7 +145,6 @@ public class MyTelegramBot extends TelegramLongPollingBot {
                     sendAdminPanel(chatId);
                     return;
                 }
-                //
                 alertsService.createAlert(text, currUser.getUserGroup());
                 sendMessage(chatId, "Новое обьявление добавлено.");
                 userStates.remove(chatId);
@@ -190,6 +189,21 @@ public class MyTelegramBot extends TelegramLongPollingBot {
                         if (currUser.getRole().equals(Role.ADMIN)) {
                             handleAdminCommands(text, chatId);
                         } else {
+                            if ("Вывести уведомления".equals(text)) {
+
+                                List<Alerts> alerts = alertsService.getAllAlerts(userRepository.getUsersByChatId(chatId).getUserGroup());
+
+                                if(alerts.size() > 0) {
+                                    sendMessage(chatId, "Оповещения для группы - " + userRepository.getUsersByChatId(chatId).getUserGroup());
+
+                                    String messageText = IntStream.range(0, alerts.size())
+                                            .mapToObj(i -> (i + 1) + ". " + alerts.get(i).getContent())
+                                            .collect(Collectors.joining("\n"));
+                                    sendMessage(chatId, messageText);
+                                } else {
+                                    sendMessage(chatId, "нет оповощений для группы - " + userRepository.getUsersByChatId(chatId).getUserGroup());
+                                }
+                            }
                             sendMessage(chatId, "Дождитесь 23:50 чтобы ответить на вопросы");
                             sendUserPanel(chatId);
                         }
@@ -385,7 +399,7 @@ public class MyTelegramBot extends TelegramLongPollingBot {
                 sendMessage(chatId, "Оповещения для группы - " + userRepository.getUsersByChatId(chatId).getUserGroup());
 
                 String messageText = IntStream.range(0, alerts.size())
-                        .mapToObj(i -> (i++) + ". " + alerts.get(i).getContent())
+                        .mapToObj(i -> (i + 1) + ". " + alerts.get(i).getContent())
                         .collect(Collectors.joining("\n"));
                 sendMessage(chatId, messageText);
 
@@ -422,9 +436,8 @@ public class MyTelegramBot extends TelegramLongPollingBot {
     private void sendUserPanel(Long chatId) {
         SendMessage message = new SendMessage();
         message.setChatId(chatId.toString());
-        message.setText("Если у вас произошел бан, тыкните на кнопку ниже");
+        message.setText("Если хотите увидеть истотрию уведомлений нажмите на кнопку");
         message.setReplyMarkup(UserPanel.userActions());
-
         try {
             execute(message);
         } catch (TelegramApiException e) {
