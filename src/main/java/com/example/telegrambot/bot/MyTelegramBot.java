@@ -6,14 +6,12 @@ import com.example.telegrambot.command.GroupPanel;
 import com.example.telegrambot.command.UserPanel;
 import com.example.telegrambot.googleSheets.service.GoogleSheetsService;
 import com.example.telegrambot.help.Mailing;
-import com.example.telegrambot.model.Alerts;
-import com.example.telegrambot.model.Questions;
-import com.example.telegrambot.model.UserChat;
-import com.example.telegrambot.model.Users;
+import com.example.telegrambot.model.*;
 import com.example.telegrambot.model.enumRole.Role;
 import com.example.telegrambot.repository.UserChatRepository;
 import com.example.telegrambot.repository.UserRepository;
 import com.example.telegrambot.service.AlertsService;
+import com.example.telegrambot.service.GroupService;
 import com.example.telegrambot.service.MessageService;
 import com.example.telegrambot.service.QuestionsService;
 import com.example.telegrambot.service.impl.UserServiceImpl;
@@ -53,6 +51,8 @@ public class MyTelegramBot extends TelegramLongPollingBot {
 
     @Autowired
     private MessageService messageService;
+    @Autowired
+    private GroupService groupService;
 
     private final Map<Long, String> userStates = new HashMap<>();
 
@@ -100,21 +100,37 @@ public class MyTelegramBot extends TelegramLongPollingBot {
     }
 
     private void handleSetUserGroup(String text, Long chatId, Users currUser) {
-        userService.updateUserGroup(currUser.getUsername(), text);
         try {
-            googleSheetsService.createList(currUser.getUsername(), text);
+            String groupSpreadsheetId = googleSheetsService.createSpreadsheetForGroup(text);
+
+
+            if(groupService.findByName(text).isEmpty()) {
+                Group group = Group.builder()
+                        .name(text)
+                        .spreadsheetId(groupSpreadsheetId)
+                        .build();
+
+                groupService.create(group);
+                userService.updateUserGroup(currUser.getUsername(), group);
+                googleSheetsService.createList(currUser.getUsername(), groupSpreadsheetId);
+                sendMessage(chatId, "Создана таблица для группы " + text + "\nДобавлен лист для " + currUser.getUsername());
+            } else {
+                userService.updateUserGroup(currUser.getUsername(), groupService.getByName(text));
+                googleSheetsService.createList(currUser.getUsername(), groupSpreadsheetId);
+                sendMessage(chatId, "Добавлен лист для " + currUser.getUsername());
+            }
+
         } catch (Exception e) {
             e.printStackTrace();
-            sendMessage(chatId, "Ошибка при создании листа в Google Sheets.");
+            sendMessage(chatId, "Ошибка при создании таблицы в Google Sheets.");
         }
         userStates.remove(chatId);
-        sendMessage(chatId, "Группа сохранена: " + text);
     }
 
     private void handleVerifiedUser(String text, Long chatId, Users currUser, Update update) {
         String userState = userStates.getOrDefault(chatId, "");
 
-        if (currUser.getUserGroup() == null) {
+        if (currUser.getGroup() == null || currUser.getGroup().getName() == null) {
             if ("WAITING_FOR_GROUP".equals(userStates.get(chatId))) {
                 handleSetUserGroup(text, chatId, currUser);
             } else if (text.equals("Указать группу")) {
@@ -135,7 +151,7 @@ public class MyTelegramBot extends TelegramLongPollingBot {
                 }
                 Questions newQuestion = new Questions();
                 newQuestion.setQuestion(text);
-                newQuestion.setQuestionGroup(currUser.getUserGroup());
+                newQuestion.setQuestionGroup(currUser.getGroup().getName());
                 questionsService.saveQuestion(newQuestion);
                 sendMessage(chatId, "Новый вопрос добавлен.");
                 userStates.remove(chatId);
@@ -147,7 +163,7 @@ public class MyTelegramBot extends TelegramLongPollingBot {
                     sendAdminPanel(chatId);
                     return;
                 }
-                alertsService.createAlert(text, currUser.getUserGroup());
+                alertsService.createAlert(text, currUser.getGroup().getName());
                 sendMessage(chatId, "Новое обьявление добавлено.");
                 userStates.remove(chatId);
                 sendAdminPanel(chatId);
@@ -171,7 +187,7 @@ public class MyTelegramBot extends TelegramLongPollingBot {
                     return;
                 }
 
-                alertsService.deleteAlert(text, currUser.getUserGroup());
+                alertsService.deleteAlert(text, currUser.getGroup().getName());
                 sendMessage(chatId, "Обьявление удалено.");
                 userStates.remove(chatId);
                 sendAdminPanel(chatId);
@@ -182,8 +198,8 @@ public class MyTelegramBot extends TelegramLongPollingBot {
                 } else {
                     UserChat user = userChatRepository.getUserChatByChatId(chatId);
                     List<Questions> questionsList = Mailing.morningQuestion() ?
-                            new ArrayList<>(questionsService.getMorningQuestions(currUser.getUserGroup())) :
-                            new ArrayList<>(questionsService.getNotMorningQuestions(currUser.getUserGroup()));
+                            new ArrayList<>(questionsService.getMorningQuestions(currUser.getGroup().getName())) :
+                            new ArrayList<>(questionsService.getNotMorningQuestions(currUser.getGroup().getName()));
 
                     if (user.isWaitingForResponse()) {
                         userRequest(update, chatId, currUser, user, text, questionsList);
@@ -193,17 +209,17 @@ public class MyTelegramBot extends TelegramLongPollingBot {
                         } else {
                             if ("Вывести уведомления".equals(text)) {
 
-                                List<Alerts> alerts = alertsService.getAllAlerts(userRepository.getUsersByChatId(chatId).getUserGroup());
+                                List<Alerts> alerts = alertsService.getAllAlerts(userRepository.getUsersByChatId(chatId).getGroup().getName());
 
                                 if (alerts.size() > 0) {
-                                    sendMessage(chatId, "Оповещения для группы - " + userRepository.getUsersByChatId(chatId).getUserGroup());
+                                    sendMessage(chatId, "Оповещения для группы - " + userRepository.getUsersByChatId(chatId).getGroup().getName());
 
                                     String messageText = IntStream.range(0, alerts.size())
                                             .mapToObj(i -> (i + 1) + ". " + alerts.get(i).getContent())
                                             .collect(Collectors.joining("\n"));
                                     sendMessage(chatId, messageText);
                                 } else {
-                                    sendMessage(chatId, "нет оповощений для группы - " + userRepository.getUsersByChatId(chatId).getUserGroup());
+                                    sendMessage(chatId, "нет оповощений для группы - " + userRepository.getUsersByChatId(chatId).getGroup().getName());
                                 }
                             }
                             sendMessage(chatId, "Дождитесь 23:50 чтобы ответить на вопросы");
@@ -396,9 +412,9 @@ public class MyTelegramBot extends TelegramLongPollingBot {
             case "list_info" -> {
                 sendMessage(chatId, "Вот список всех оповещений:");
 
-                List<Alerts> alerts = alertsService.getAllAlerts(userRepository.getUsersByChatId(chatId).getUserGroup());
+                List<Alerts> alerts = alertsService.getAllAlerts(userRepository.getUsersByChatId(chatId).getGroup().getName());
 
-                sendMessage(chatId, "Оповещения для группы - " + userRepository.getUsersByChatId(chatId).getUserGroup());
+                sendMessage(chatId, "Оповещения для группы - " + userRepository.getUsersByChatId(chatId).getGroup().getName());
 
                 String messageText = IntStream.range(0, alerts.size())
                         .mapToObj(i -> (i + 1) + ". " + alerts.get(i).getContent())

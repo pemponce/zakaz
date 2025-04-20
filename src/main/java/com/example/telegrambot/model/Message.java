@@ -22,7 +22,10 @@ public class Message {
 
     @JoinColumn(table = "users")
     private String userName;
-    private String userGroup;
+
+    @ManyToOne
+    @JoinColumn(name = "group_id")
+    private Group group;
 
     @Column(name = "response_message")
     private String response_message;

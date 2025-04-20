@@ -43,7 +43,7 @@ public class MessageServiceImpl implements MessageService {
                     .userId(currUser.getId())
                     .chatId(currUser.getChatId())
                     .userName(currUser.getUsername())
-                    .userGroup(currUser.getUserGroup())
+                    .group(currUser.getGroup())
                     .response_message(update.getMessage().getText())
                     .question(questionText)
                     .time(formattedTime)
@@ -55,14 +55,14 @@ public class MessageServiceImpl implements MessageService {
             if (!isBan) {
                 values = List.of(
                         List.of(saveMessage.getChatId().toString(), saveMessage.getResponse_message(),
-                                saveMessage.getQuestion(), saveMessage.getTime(), saveMessage.getUserName(), saveMessage.getUserGroup(), saveMessage.getUserId())
+                                saveMessage.getQuestion(), saveMessage.getTime(), saveMessage.getUserName(), saveMessage.getGroup().getName(), saveMessage.getUserId())
                 );
             } else {
                 values = List.of(answers);
             }
 
             try {
-                googleSheetsService.addData(range, values);
+                googleSheetsService.addData(range, values, currUser.getGroup().getSpreadsheetId());
                 System.out.println("Сообщение отправлено в Google Sheets!");
             } catch (Exception e) {
                 System.err.println("Ошибка при отправке данных в Google Sheets");
@@ -74,7 +74,7 @@ public class MessageServiceImpl implements MessageService {
                     .userId(currUser.getId())
                     .chatId(currUser.getChatId())
                     .userName(currUser.getUsername())
-                    .userGroup(currUser.getUserGroup())
+                    .group(currUser.getGroup())
                     .response_message(update.getMessage().getText())
                     .question("")
                     .time(formattedTime)

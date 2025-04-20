@@ -48,10 +48,10 @@ public class Mailing {
         for (UserChat chatUser : chatUsers) {
             Long chatId = chatUser.getChatId();
             Users user = userService.getUsersByChatId(chatId);
-            if (!user.getRole().equals(Role.ADMIN) && user.isVerify() && questionsService.findFirstByMorningFalse(user.getUserGroup()) != null) {
+            if (!user.getRole().equals(Role.ADMIN) && user.isVerify() && questionsService.findFirstByMorningFalse(user.getGroup().getName()) != null) {
                 executor.broadcastMessage(chatId, "Пожалуйста ответьте на все вопросы");
 
-                Questions currentQuestion = questionsService.findFirstByMorningFalse(user.getUserGroup());
+                Questions currentQuestion = questionsService.findFirstByMorningFalse(user.getGroup().getName());
                 chatUser.setCurrentQuestionId(currentQuestion.getId());
                 chatUser.setWaitingForResponse(true);
                 userChatRepository.save(chatUser);
@@ -63,7 +63,7 @@ public class Mailing {
                     executor.broadcastMessage(chatId, "Авторизируйтесь! следующая рассылка будет в 10:30");
 
                 }
-                if (user.isVerify() && questionsService.findFirstByMorningFalse(user.getUserGroup()) == null) {
+                if (user.isVerify() && questionsService.findFirstByMorningFalse(user.getGroup().getName()) == null) {
                     executor.broadcastMessage(chatId, "Дневных вопросов сегодня нет");
 
                 }else {
@@ -82,10 +82,10 @@ public class Mailing {
             Long chatId = chatUser.getChatId();
             Users user = userService.getUsersByChatId(chatId);
 
-            if (!user.getRole().equals(Role.ADMIN) && user.isVerify() && questionsService.findFirstByMorningTrue(user.getUserGroup()) != null) {
+            if (!user.getRole().equals(Role.ADMIN) && user.isVerify() && questionsService.findFirstByMorningTrue(user.getGroup().getName()) != null) {
                 executor.broadcastMessage(chatId, "Пожалуйста ответьте на все вопросы");
 
-                Questions currentQuestion = questionsService.findFirstByMorningTrue(user.getUserGroup());
+                Questions currentQuestion = questionsService.findFirstByMorningTrue(user.getGroup().getName());
                 chatUser.setCurrentQuestionId(currentQuestion.getId());
                 chatUser.setWaitingForResponse(true);
                 userChatRepository.save(chatUser);
@@ -97,7 +97,7 @@ public class Mailing {
                     executor.broadcastMessage(chatId, "Авторизируйтесь! следующая рассылка будет в 10:30");
 
                 }
-                if (user.isVerify() && questionsService.findFirstByMorningTrue(user.getUserGroup()) == null) {
+                if (user.isVerify() && questionsService.findFirstByMorningTrue(user.getGroup().getName()) == null) {
                     executor.broadcastMessage(chatId, "Утренних вопросов сегодня нет");
 
                 } else {

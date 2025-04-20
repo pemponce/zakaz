@@ -1,5 +1,6 @@
 package com.example.telegrambot.service;
 
+import com.example.telegrambot.model.Group;
 import com.example.telegrambot.model.Users;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.objects.Update;
@@ -9,7 +10,7 @@ import java.util.List;
 
 public interface UserService {
     Users createUser(Update update);
-    void updateUserGroup(String username, String group);
+    void updateUserGroup(String username, Group group);
     String getAllUsers();
     Users getUsersByChatId(Long chatId);
     boolean setRole(String username, String role);

@@ -2,6 +2,7 @@ package com.example.telegrambot.service.impl;
 
 import com.example.telegrambot.googleSheets.service.GoogleSheetsService;
 import com.example.telegrambot.help.GenerateCode;
+import com.example.telegrambot.model.Group;
 import com.example.telegrambot.model.UserChat;
 import com.example.telegrambot.model.Users;
 import com.example.telegrambot.model.enumRole.Role;
@@ -24,6 +25,7 @@ public class UserServiceImpl implements UserService {
     private UserChatRepository userChatRepository;
     private UserRepository userRepository;
     private final GenerateCode generateCode;
+
 
 
     @Override
@@ -63,10 +65,10 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void updateUserGroup(String username, String group) {
+    public void updateUserGroup(String username, Group group) {
         Users user = userRepository.getUsersByUsername(username);
         if (user != null) {
-            user.setUserGroup(group);
+            user.setGroup(group);
             userRepository.save(user);
         } else {
             throw new RuntimeException();

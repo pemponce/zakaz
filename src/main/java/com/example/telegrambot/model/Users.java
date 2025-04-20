@@ -21,7 +21,10 @@ public class Users {
     private boolean isVerify;
     private Role role;
 
-    private String userGroup;
+    @ManyToOne
+    @JoinColumn(name = "group_id")
+    private Group group;
+
     @JoinColumn(table = "user_chat")
     private Long chatId;
 }
