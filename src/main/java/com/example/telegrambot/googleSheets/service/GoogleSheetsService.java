@@ -73,12 +73,12 @@ public class GoogleSheetsService {
 
     private void createSheetsIfNotExists() {
         createList("usersCode", "");
-        createList("Banned", "");
+        createList("alerts", "");
     }
 
     public void createList(String sheetName, String group) {
         executionWrapper(() -> {
-            var addSheetRequest = new AddSheetRequest().setProperties(new SheetProperties().setTitle(sheetName+group));
+            var addSheetRequest = new AddSheetRequest().setProperties(new SheetProperties().setTitle(sheetName+" "+group));
             var request = new Request().setAddSheet(addSheetRequest);
             var batchRequest = new BatchUpdateSpreadsheetRequest().setRequests(Collections.singletonList(request));
             return spreadsheets.batchUpdate(spreadsheetId, batchRequest).execute();

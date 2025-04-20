@@ -64,7 +64,7 @@ public class Mailing {
 
                 }
                 if (user.isVerify() && questionsService.findFirstByMorningFalse(user.getUserGroup()) == null) {
-                    executor.broadcastMessage(chatId, "Дневних вопросов сегодня нет");
+                    executor.broadcastMessage(chatId, "Дневных вопросов сегодня нет");
 
                 }else {
                     executor.broadcastMessage(chatId, "Рассылка началась");

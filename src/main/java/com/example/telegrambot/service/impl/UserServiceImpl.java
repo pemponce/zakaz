@@ -68,20 +68,10 @@ public class UserServiceImpl implements UserService {
         if (user != null) {
             user.setUserGroup(group);
             userRepository.save(user);
-
-            List<List<Object>> values = List.of(
-                    List.of(user.getUsername(), user.getVerificationCode(), group)
-            );
-            String range = "usersCode!A1";
-            try {
-                googleSheetsService.updateData(range, values);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+        } else {
+            throw new RuntimeException();
         }
     }
-
-
 
     @Override
     public String getAllUsers() {

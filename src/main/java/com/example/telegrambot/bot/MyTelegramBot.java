@@ -84,19 +84,15 @@ public class MyTelegramBot extends TelegramLongPollingBot {
 
         if (currUser == null) {
             if (!userChatRepository.existsByChatId(chatId) && !userRepository.existsByChatId(chatId)) {
-                Users user = userService.createUser(update);
+                userService.createUser(update);
 
-                try {
-                    googleSheetsService.createList(user.getUsername(), user.getUserGroup());
-                    sendWelcomeMessage(chatId);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    sendMessage(chatId, "Ошибка при создании листа в Google Sheets.");
-                }
+                sendWelcomeMessage(chatId);
+
             }
         } else {
             if (currUser.isVerify()) {
                 handleVerifiedUser(text, chatId, currUser, update);
+
             } else {
                 handleNonVerifiedUser(text, chatId, currUser);
             }
@@ -105,6 +101,12 @@ public class MyTelegramBot extends TelegramLongPollingBot {
 
     private void handleSetUserGroup(String text, Long chatId, Users currUser) {
         userService.updateUserGroup(currUser.getUsername(), text);
+        try {
+            googleSheetsService.createList(currUser.getUsername(), text);
+        } catch (Exception e) {
+            e.printStackTrace();
+            sendMessage(chatId, "Ошибка при создании листа в Google Sheets.");
+        }
         userStates.remove(chatId);
         sendMessage(chatId, "Группа сохранена: " + text);
     }
@@ -193,7 +195,7 @@ public class MyTelegramBot extends TelegramLongPollingBot {
 
                                 List<Alerts> alerts = alertsService.getAllAlerts(userRepository.getUsersByChatId(chatId).getUserGroup());
 
-                                if(alerts.size() > 0) {
+                                if (alerts.size() > 0) {
                                     sendMessage(chatId, "Оповещения для группы - " + userRepository.getUsersByChatId(chatId).getUserGroup());
 
                                     String messageText = IntStream.range(0, alerts.size())
