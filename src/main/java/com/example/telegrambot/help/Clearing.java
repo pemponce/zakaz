@@ -21,7 +21,7 @@ public class Clearing {
     private final UserChatService userChatService;
     private Executor executor;
 
-    @Scheduled(cron = "0 9 18 * * *")
+    @Scheduled(cron = "0 32 2 * * *")
     public void deleteAllDailyQuestions() {
         var usersChats = userChatService.findAll();
 

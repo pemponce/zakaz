@@ -181,7 +181,7 @@ public class Mailing {
         for (UserChat chat : users) {
             var user = userService.getUsersByChatId(chat.getChatId());
 
-            if (isUserEligible(user, type)) {
+            if (isUserEligible(user)) {
                 processUserByType(user, chat, type);
             } else {
                 handleIneligibleUser(user, type);
@@ -189,34 +189,36 @@ public class Mailing {
         }
     }
 
-    private boolean isUserEligible(Users user, MailingType type) {
-        if (!user.isVerify() || user.getRole() == Role.ADMIN) return false;
+    private boolean isUserEligible(Users user) {
 
-        return switch (type) {
-            case MORNING -> questionsService.findFirstByMorningTrue(user.getGroup().getName()) != null;
-            case DAILY -> questionsService.findFirstByMorningFalse(user.getGroup().getName()) != null;
-            case ALERT -> alertsService.getLastGroupAlert(user.getGroup().getName()) != null;
-        };
+        return user.isVerify() && user.getRole() != Role.ADMIN;
     }
 
     private void processUserByType(Users user, UserChat chat, MailingType type) {
-        var chatId = user.getChatId();
 
         switch (type) {
             case MORNING -> {
-                executor.broadcastMessage(chatId, Emoji.QUESTION.getData().repeat(3) + "\nПожалуйста ответьте на все вопросы");
                 sendQuestion(user, chat, true);
             }
             case DAILY -> {
-                executor.broadcastMessage(chatId, Emoji.QUESTION.getData().repeat(3) + "\nПожалуйста ответьте на все вопросы");
                 sendQuestion(user, chat, false);
             }
             case ALERT -> {
-                var alertText = alertsService.getLastGroupAlert(user.getGroup().getName()).getContent();
-                alertText = highlightEnglishWordsAsCode(alertText);
-                executor.broadcastMessage(chatId, Emoji.ALERT.getData().repeat(3) + "\nОповещение для группы " +
-                        user.getGroup().getName() + ":\n"  + "<strong>"+alertText+"</strong>" );
+                sendAlert(user, chat);
             }
+        }
+    }
+
+    private void sendAlert(Users user, UserChat chat) {
+        var alertText = alertsService.getLastGroupAlert(user.getGroup().getName()).getContent();
+        if (alertText != null) {
+
+            alertText = highlightEnglishWordsAsCode(alertText);
+            executor.broadcastMessage(chat.getChatId(), Emoji.ALERT.getData().repeat(3) + "\nОповещение для группы " +
+                    user.getGroup().getName() + ":\n" + "<strong>" + alertText + "</strong>");
+        } else {
+            executor.broadcastMessage(chat.getChatId(), Emoji.ALERT.getData().repeat(3) + "\nНет оповещений для группы " +
+                    user.getGroup().getName());
         }
     }
 
@@ -226,10 +228,14 @@ public class Mailing {
                 : questionsService.findFirstByMorningFalse(user.getGroup().getName());
 
         if (question != null) {
+            executor.broadcastMessage(chat.getChatId(), Emoji.QUESTION.getData().repeat(3) + "\nПожалуйста ответьте на все вопросы");
+
             chat.setCurrentQuestionId(question.getId());
             chat.setWaitingForResponse(true);
             userChatRepository.save(chat);
             executor.broadcastMessage(user.getChatId(), question.getQuestion());
+        } else {
+            executor.broadcastMessage(chat.getChatId(), Emoji.QUESTION.getData().repeat(3) + "\nВопросов сегодня нет" + Emoji.ALERT.getData());
         }
     }
 
@@ -241,9 +247,9 @@ public class Mailing {
         }
 
         var message = switch (type) {
-            case MORNING -> Emoji.WARNING + " Утренних вопросов сегодня нет";
-            case DAILY -> Emoji.WARNING + " Дневных вопросов сегодня нет";
-            case ALERT -> Emoji.WARNING + " Нет актуальных оповещений";
+            case MORNING -> Emoji.WARNING + " Рассылка утренних вопросов началась";
+            case DAILY -> Emoji.WARNING + " Рассылка дневных вопросов началась";
+            case ALERT -> Emoji.WARNING + " Рассылка актуальных оповещений началась";
         };
 
         executor.broadcastMessage(user.getChatId(), message);

@@ -399,30 +399,10 @@ public class MyTelegramBot extends TelegramLongPollingBot {
             }
             case "list_info" -> {
                 sendMessage(chatId, "Вот список всех оповещений:");
-
                 /*
                 TODO: вывести это логику в сервайс алертс
                  */
-
-                List<Alerts> alerts = alertsService.getAllAlerts(userRepository.getUsersByChatId(chatId).getGroup().getName());
-
-                if (alerts.size() > 0) {
-                    sendMessage(chatId, "Оповещения для группы - " + userRepository.getUsersByChatId(chatId).getGroup().getName());
-
-                    String messageText = IntStream.range(0, alerts.size())
-                            .mapToObj(i -> (alerts.get(i).isActive() ?
-                                    Emoji.ALARM.getData() + " " : Emoji.CHECKED.getData() + " ")
-                                    + (i + 1) + " - " + alerts.get(i).getContent()
-                            )
-                            .collect(Collectors.joining("\n"));
-
-
-                    sendMessage(chatId, messageText);
-
-                } else {
-                    sendMessage(chatId, "нет оповощений для группы - " + userRepository.getUsersByChatId(chatId).getGroup().getName());
-                }
-
+                sendMessage(chatId, alertsService.getAllAlertsContent(userRepository.getUsersByChatId(chatId).getGroup().getName()));
                 sendAdminPanel(chatId);
             }
             default -> {

@@ -10,4 +10,5 @@ public interface AlertsService {
     Alerts getAlert(String content, String group);
     Alerts getLastGroupAlert(String group);
     List<Alerts> getAllAlerts(String group);
+    String getAllAlertsContent(String group);
 }
