@@ -2,17 +2,16 @@ package com.example.telegrambot.bot;
 
 import com.example.telegrambot.command.AdminPanel;
 import com.example.telegrambot.command.AuthPanel;
+import com.example.telegrambot.command.GroupPanel;
 import com.example.telegrambot.command.UserPanel;
 import com.example.telegrambot.googleSheets.service.GoogleSheetsService;
 import com.example.telegrambot.help.Mailing;
-import com.example.telegrambot.model.BanQuestions;
-import com.example.telegrambot.model.Questions;
-import com.example.telegrambot.model.UserChat;
-import com.example.telegrambot.model.Users;
-import com.example.telegrambot.model.enumRole.Role;
+import com.example.telegrambot.model.*;
+import com.example.telegrambot.model.Role;
 import com.example.telegrambot.repository.UserChatRepository;
 import com.example.telegrambot.repository.UserRepository;
-import com.example.telegrambot.service.BanQuestionsService;
+import com.example.telegrambot.service.AlertsService;
+import com.example.telegrambot.service.GroupService;
 import com.example.telegrambot.service.MessageService;
 import com.example.telegrambot.service.QuestionsService;
 import com.example.telegrambot.service.impl.UserServiceImpl;
@@ -27,6 +26,8 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 @Component
 public class MyTelegramBot extends TelegramLongPollingBot {
@@ -41,16 +42,17 @@ public class MyTelegramBot extends TelegramLongPollingBot {
     private UserRepository userRepository;
 
     @Autowired
-    private UserServiceImpl userService;
+    private AlertsService alertsService;
 
+    @Autowired
+    private UserServiceImpl userService;
     @Autowired
     private QuestionsService questionsService;
 
     @Autowired
-    private BanQuestionsService banQuestionsService;
-
-    @Autowired
     private MessageService messageService;
+    @Autowired
+    private GroupService groupService;
 
     private final Map<Long, String> userStates = new HashMap<>();
 
@@ -82,110 +84,134 @@ public class MyTelegramBot extends TelegramLongPollingBot {
 
         if (currUser == null) {
             if (!userChatRepository.existsByChatId(chatId) && !userRepository.existsByChatId(chatId)) {
-                Users user = userService.createUser(update);
+                userService.createUser(update);
 
-                try {
-                    googleSheetsService.createList(user.getUsername());
-                    sendWelcomeMessage(chatId);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    sendMessage(chatId, "Ошибка при создании листа в Google Sheets.");
-                }
+                sendWelcomeMessage(chatId);
+
             }
         } else {
             if (currUser.isVerify()) {
                 handleVerifiedUser(text, chatId, currUser, update);
+
             } else {
                 handleNonVerifiedUser(text, chatId, currUser);
             }
         }
     }
 
+    private void handleSetUserGroup(String text, Long chatId, Users currUser) {
+        try {
+            String groupSpreadsheetId = googleSheetsService.createSpreadsheetForGroup(text);
+
+
+            if (groupService.findByName(text).isEmpty()) {
+                Group group = Group.builder()
+                        .name(text)
+                        .spreadsheetId(groupSpreadsheetId)
+                        .build();
+
+                groupService.create(group);
+                userService.updateUserGroup(currUser.getUsername(), group);
+                googleSheetsService.createList(currUser.getUsername(), groupSpreadsheetId);
+                sendMessage(chatId, "Создана таблица для группы " + text + "\nДобавлен лист для " + currUser.getUsername());
+            } else {
+                userService.updateUserGroup(currUser.getUsername(), groupService.getByName(text));
+                googleSheetsService.createList(currUser.getUsername(), groupSpreadsheetId);
+                sendMessage(chatId, "Добавлен лист для " + currUser.getUsername());
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            sendMessage(chatId, "Ошибка при создании таблицы в Google Sheets.");
+        }
+        userStates.remove(chatId);
+    }
+
     private void handleVerifiedUser(String text, Long chatId, Users currUser, Update update) {
         String userState = userStates.getOrDefault(chatId, "");
 
-
-        if ("WAITING_FOR_NEW_QUESTION".equals(userState)) {
-
-            if (text.equals("Отмена")) {
-                sendMessage(chatId, "Отмена действия");
-                userStates.remove(chatId);
-                sendAdminPanel(chatId);
-                return;
-            }
-            Questions newQuestion = new Questions();
-            newQuestion.setQuestion(text);
-            questionsService.saveQuestion(newQuestion);
-            sendMessage(chatId, "Новый вопрос добавлен.");
-            userStates.remove(chatId);
-            sendAdminPanel(chatId);
-        } else if ("WAITING_FOR_NEW_BAN_QUESTION".equals(userState)) {
-            if (text.equals("Отмена")) {
-                sendMessage(chatId, "Отмена действия");
-                userStates.remove(chatId);
-                sendAdminPanel(chatId);
-                return;
-            }
-            BanQuestions newBanQuestion = new BanQuestions();
-            newBanQuestion.setQuestion(text);
-            banQuestionsService.createQuestion(newBanQuestion.getQuestion());
-            sendMessage(chatId, "Новый вопрос для бана добавлен.");
-            userStates.remove(chatId);
-            sendAdminPanel(chatId);
-        } else if ("WAITING_FOR_QUESTION_TO_DELETE".equals(userState)) {
-            if (text.equals("Отмена")) {
-                sendMessage(chatId, "Отмена действия");
-                userStates.remove(chatId);
-                sendAdminPanel(chatId);
-                return;
-            }
-            questionsService.deleteQuestion(text);
-            sendMessage(chatId, "Вопрос удалён.");
-            userStates.remove(chatId);
-            sendAdminPanel(chatId);
-        } else if ("WAITING_FOR_BAN_QUESTION_TO_DELETE".equals(userState)) {
-            if (text.equals("Отмена")) {
-                sendMessage(chatId, "Отмена действия");
-                userStates.remove(chatId);
-                sendAdminPanel(chatId);
-                return;
-            }
-            banQuestionsService.deleteQuestion(text);
-            sendMessage(chatId, "Вопрос для бана удалён.");
-            userStates.remove(chatId);
-            sendAdminPanel(chatId);
-        } else {
-            if (!Role.ADMIN.equals(currUser.getRole()) && text.equals("/admin")) {
-                sendMessage(chatId, "Вы не являетесь админом");
+        if (currUser.getGroup() == null || currUser.getGroup().getName() == null) {
+            if ("WAITING_FOR_GROUP".equals(userStates.get(chatId))) {
+                handleSetUserGroup(text, chatId, currUser);
+            } else if (text.equals("Указать группу")) {
+                userStates.put(chatId, "WAITING_FOR_GROUP");
+                sendMessage(chatId, "Введите номер своей группы в формате: 09-252");
             } else {
-                UserChat user = userChatRepository.getUserChatByChatId(chatId);
-                List<Questions> questionsList = Mailing.morningQuestion() ?
-                        new ArrayList<>(questionsService.getMorningQuestions()) :
-                        new ArrayList<>(questionsService.getNotMorningQuestions());
+                sendGroupPanel(chatId);
+            }
+            return;
+        } else {
+            if ("WAITING_FOR_NEW_QUESTION".equals(userState)) {
 
-                if (user.isWaitingForResponse()) {
-                    if (!ban) {
-                        userRequest(update, chatId, currUser, user, text, questionsList, null);
-                    } else {
-                        List<BanQuestions> banQuestionsList = new ArrayList<>(banQuestionsService.getAll());
-                        userRequest(update, chatId, currUser, user, text, null, banQuestionsList);
+                if (text.equals("Отмена")) {
+                    sendMessage(chatId, "Отмена действия");
+                    userStates.remove(chatId);
+                    sendAdminPanel(chatId);
+                    return;
+                }
+                Questions newQuestion = new Questions();
+                newQuestion.setQuestion(text);
+                newQuestion.setQuestionGroup(currUser.getGroup().getName());
+                questionsService.saveQuestion(newQuestion);
+                sendMessage(chatId, "Новый вопрос добавлен.");
+                userStates.remove(chatId);
+                sendAdminPanel(chatId);
+            } else if ("WAITING_FOR_NEW_BAN_QUESTION".equals(userState)) {
+                if (text.equals("Отмена")) {
+                    sendMessage(chatId, "Отмена действия");
+                    userStates.remove(chatId);
+                    sendAdminPanel(chatId);
+                    return;
+                }
+                alertsService.createAlert(text, currUser.getGroup().getName());
+                sendMessage(chatId, "Новое обьявление добавлено.");
+                userStates.remove(chatId);
+                sendAdminPanel(chatId);
 
-                    }
+            } else if ("WAITING_FOR_QUESTION_TO_DELETE".equals(userState)) {
+                if (text.equals("Отмена")) {
+                    sendMessage(chatId, "Отмена действия");
+                    userStates.remove(chatId);
+                    sendAdminPanel(chatId);
+                    return;
+                }
+                questionsService.deleteQuestion(text);
+                sendMessage(chatId, "Вопрос удалён.");
+                userStates.remove(chatId);
+                sendAdminPanel(chatId);
+            } else if ("WAITING_FOR_BAN_QUESTION_TO_DELETE".equals(userState)) {
+                if (text.equals("Отмена")) {
+                    sendMessage(chatId, "Отмена действия");
+                    userStates.remove(chatId);
+                    sendAdminPanel(chatId);
+                    return;
+                }
+
+                alertsService.deleteAlert(text, currUser.getGroup().getName());
+                sendMessage(chatId, "Обьявление удалено.");
+                userStates.remove(chatId);
+                sendAdminPanel(chatId);
+
+            } else {
+                if (!Role.ADMIN.equals(currUser.getRole()) && text.equals("/admin")) {
+                    sendMessage(chatId, "Вы не являетесь админом");
                 } else {
-                    if (currUser.getRole().equals(Role.ADMIN)) {
-                        handleAdminCommands(text, chatId);
+                    UserChat user = userChatRepository.getUserChatByChatId(chatId);
+                    List<Questions> questionsList = new ArrayList<>();
+                    if (Mailing.wasLastMailingAQuestion()) {
+                        questionsList = Mailing.isMorningLastMailing()
+                                ? questionsService.getMorningQuestions(currUser.getGroup().getName())
+                                : questionsService.getNotMorningQuestions(currUser.getGroup().getName());
+                    }
+
+                    if (user.isWaitingForResponse()) {
+                        userRequest(update, chatId, currUser, user, text, questionsList);
                     } else {
-                        if (text.equals("Забанили")) {
-                            long minId = banQuestionsService.getMinId();
-                            user.setCurrentQuestionId(minId);
-                            user.setWaitingForResponse(true);
-                            userChatRepository.save(user);
-                            sendMessage(chatId, banQuestionsService.getQuestion(minId).getQuestion());
-                            ban = true;
+                        if (currUser.getRole().equals(Role.ADMIN)) {
+                            handleAdminCommands(text, chatId);
                         } else {
                             sendMessage(chatId, "Дождитесь 23:50 чтобы ответить на вопросы");
                             sendUserPanel(chatId);
-
                         }
                     }
                 }
@@ -194,53 +220,29 @@ public class MyTelegramBot extends TelegramLongPollingBot {
     }
 
     private void userRequest(Update update, Long chatId, Users currUser, UserChat user,
-                             String text, @Nullable List<Questions> questionsList, @Nullable List<BanQuestions> banQuestionsList) {
+                             String text, @Nullable List<Questions> questionsList) {
 
         long currentQuestionId = user.getCurrentQuestionId();
         long maxId;
         long minId;
         boolean flag = false;
 
-        Object nextQuestion;
-        if (questionsList != null) {
-            maxId = questionsService.getMaxId();
-            minId = questionsService.getMinId();
+        Questions nextQuestion;
+        maxId = questionsService.getMaxId();
+        minId = questionsService.getMinId();
 
-            nextQuestion = questionsList.stream()
-                    .filter(q -> q.getId() > currentQuestionId && q.getId() <= maxId)
-                    .findFirst()
-                    .orElse(null);
-            sendMessage(chatId, "Ваш ответ записан\n```\n" + text + "\n```");
+        nextQuestion = questionsList.stream()
+                .filter(q -> q.getId() > currentQuestionId && q.getId() <= maxId)
+                .findFirst()
+                .orElse(null);
+        sendMessage(chatId, "Ваш ответ записан\n<strong>" + text + "</strong>");
 
-            messageService.saveMessage(update, null, currUser, flag);
-
-        } else {
-
-
-            maxId = banQuestionsService.getMaxId();
-            minId = banQuestionsService.getMinId();
-
-            nextQuestion = banQuestionsList.stream()
-                    .filter(q -> q.getId() > currentQuestionId && q.getId() <= maxId)
-                    .findFirst()
-                    .orElse(null);
-
-            flag = true;
-            sendMessage(chatId, "Ваш ответ записан\n```\n" + text + "\n```");
-
-            answers.add(text);
-
-        }
+        messageService.saveMessage(update, null, currUser, flag);
 
 
         if (nextQuestion != null) {
-            if (nextQuestion instanceof Questions) {
-                user.setCurrentQuestionId(((Questions) nextQuestion).getId());
-                sendMessage(chatId, ((Questions) nextQuestion).getQuestion());
-            } else {
-                user.setCurrentQuestionId(((BanQuestions) nextQuestion).getId());
-                sendMessage(chatId, ((BanQuestions) nextQuestion).getQuestion());
-            }
+            user.setCurrentQuestionId(nextQuestion.getId());
+            sendMessage(chatId, nextQuestion.getQuestion());
 
             user.setWaitingForResponse(true);
             userChatRepository.save(user);
@@ -328,9 +330,9 @@ public class MyTelegramBot extends TelegramLongPollingBot {
 
     private void sendQuestionTypeButtonsBasedOnText(String text, Long chatId) {
         switch (text) {
-            case "Добавить вопрос" -> sendQuestionTypeButtons(chatId, "add");
-            case "Удалить вопрос" -> sendQuestionTypeButtons(chatId, "delete");
-            case "Вывести все вопросы" -> sendQuestionTypeButtons(chatId, "list");
+            case "Добавить данные" -> sendQuestionTypeButtons(chatId, "add");
+            case "Удалить данные" -> sendQuestionTypeButtons(chatId, "delete");
+            case "Вывести все данные" -> sendQuestionTypeButtons(chatId, "list");
             case "Вывести всех пользователей" -> {
                 sendMessage(chatId, "Вот список всех пользователей:");
                 sendMessage(chatId, userService.getAllUsers());
@@ -341,11 +343,13 @@ public class MyTelegramBot extends TelegramLongPollingBot {
 
     private void handleNonVerifiedUser(String text, Long chatId, Users currUser) {
         String userState = userStates.getOrDefault(chatId, "");
+
         switch (userState) {
             case "AuthUser":
                 if (userService.existsByVerificationCode(Integer.parseInt(text), currUser)) {
                     userService.verifyUser(Integer.parseInt(text), currUser);
                     sendMessage(chatId, "Вы успешно авторизовались");
+                    sendGroupPanel(chatId);
                 } else {
                     sendMessage(chatId, "Код неверный, пожалуйста запросите код у администратора");
                     sendAuthPanel(chatId);
@@ -353,7 +357,7 @@ public class MyTelegramBot extends TelegramLongPollingBot {
                 break;
             default:
                 if (text.equals("Авторизоваться")) {
-                    sendMessage(chatId, "Введите 4х значный код");
+                    sendMessage(chatId, "Введите 4-значный код");
                     userStates.put(chatId, "AuthUser");
                 } else {
                     sendAuthPanel(chatId);
@@ -371,31 +375,34 @@ public class MyTelegramBot extends TelegramLongPollingBot {
             case "add_normal" -> {
                 sendCancelBtn(chatId);
                 userStates.put(chatId, "WAITING_FOR_NEW_QUESTION");
-                sendMessage(chatId, "Пожалуйста, введите новый обычный вопрос:");
+                sendMessage(chatId, "Пожалуйста, введите новый вопрос:");
             }
-            case "add_ban" -> {
+            case "add_info" -> {
                 sendCancelBtn(chatId);
                 userStates.put(chatId, "WAITING_FOR_NEW_BAN_QUESTION");
-                sendMessage(chatId, "Пожалуйста, введите новый вопрос для бана:");
+                sendMessage(chatId, "Пожалуйста, введите новое обьявление/оповещение:");
             }
             case "delete_normal" -> {
                 sendCancelBtn(chatId);
                 userStates.put(chatId, "WAITING_FOR_QUESTION_TO_DELETE");
                 sendMessage(chatId, "Введите обычный вопрос, который хотите удалить:");
             }
-            case "delete_ban" -> {
+            case "delete_info" -> {
                 sendCancelBtn(chatId);
                 userStates.put(chatId, "WAITING_FOR_BAN_QUESTION_TO_DELETE");
-                sendMessage(chatId, "Введите вопрос для бана, который хотите удалить:");
+                sendMessage(chatId, "Введите обьявление/оповещение, которое хотите удалить:");
             }
             case "list_normal" -> {
-                sendMessage(chatId, "Вот список всех обычных вопросов:");
-                sendMessage(chatId, questionsService.getAllQuestions());
+                sendMessage(chatId, "Вот список всех вопросов:");
+                sendMessage(chatId, questionsService.getAllQuestionsContent());
                 sendAdminPanel(chatId);
             }
-            case "list_ban" -> {
-                sendMessage(chatId, "Вот список всех вопросов для бана:");
-                sendMessage(chatId, banQuestionsService.getAllQuestions());
+            case "list_info" -> {
+                sendMessage(chatId, "Вот список всех оповещений:");
+                /*
+                TODO: вывести это логику в сервайс алертс
+                 */
+                sendMessage(chatId, alertsService.getAllAlertsContent(userRepository.getUsersByChatId(chatId).getGroup().getName()));
                 sendAdminPanel(chatId);
             }
             default -> {
@@ -429,9 +436,8 @@ public class MyTelegramBot extends TelegramLongPollingBot {
     private void sendUserPanel(Long chatId) {
         SendMessage message = new SendMessage();
         message.setChatId(chatId.toString());
-        message.setText("Если у вас произошел бан, тыкните на кнопку ниже");
+        message.setText("Если хотите увидеть истотрию уведомлений нажмите на кнопку");
         message.setReplyMarkup(UserPanel.userActions());
-
         try {
             execute(message);
         } catch (TelegramApiException e) {
@@ -443,13 +449,13 @@ public class MyTelegramBot extends TelegramLongPollingBot {
         SendMessage message = new SendMessage();
         message.setChatId(chatId.toString());
         String text = switch (action) {
-            case "add" -> "Выберите тип вопроса для добавления:";
-            case "delete" -> "Выберите тип вопроса для удаления:";
-            case "list" -> "Выберите тип вопроса для отображения:";
+            case "add" -> "Выберите тип данных для добавления:";
+            case "delete" -> "Выберите тип данных для удаления:";
+            case "list" -> "Выберите тип данных для отображения:";
             default -> "Ошибка!";
         };
         message.setText(text);
-        message.setReplyMarkup(AdminPanel.questionTypeButtons(action));
+        message.setReplyMarkup(AdminPanel.questionAndAlertTypeButtons(action));
 
         try {
             execute(message);
@@ -463,6 +469,19 @@ public class MyTelegramBot extends TelegramLongPollingBot {
         message.setChatId(chatId.toString());
         message.setText("Вы не авторизованы. Пожалуйста, авторизуйтесь:");
         message.setReplyMarkup(AuthPanel.authAction());
+
+        try {
+            execute(message);
+        } catch (TelegramApiException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void sendGroupPanel(Long chatId) {
+        SendMessage message = new SendMessage();
+        message.setChatId(chatId.toString());
+        message.setText("Вы не указали свою группу, пожалуйста укажите ее");
+        message.setReplyMarkup(GroupPanel.groupAction());
 
         try {
             execute(message);

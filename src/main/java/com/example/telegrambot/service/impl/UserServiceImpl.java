@@ -2,9 +2,10 @@ package com.example.telegrambot.service.impl;
 
 import com.example.telegrambot.googleSheets.service.GoogleSheetsService;
 import com.example.telegrambot.help.GenerateCode;
+import com.example.telegrambot.model.Group;
 import com.example.telegrambot.model.UserChat;
 import com.example.telegrambot.model.Users;
-import com.example.telegrambot.model.enumRole.Role;
+import com.example.telegrambot.model.Role;
 import com.example.telegrambot.repository.UserChatRepository;
 import com.example.telegrambot.repository.UserRepository;
 import com.example.telegrambot.service.UserService;
@@ -24,6 +25,7 @@ public class UserServiceImpl implements UserService {
     private UserChatRepository userChatRepository;
     private UserRepository userRepository;
     private final GenerateCode generateCode;
+
 
 
     @Override
@@ -62,7 +64,16 @@ public class UserServiceImpl implements UserService {
         return userRepository.save(user);
     }
 
-
+    @Override
+    public void updateUserGroup(String username, Group group) {
+        Users user = userRepository.getUsersByUsername(username);
+        if (user != null) {
+            user.setGroup(group);
+            userRepository.save(user);
+        } else {
+            throw new RuntimeException();
+        }
+    }
 
     @Override
     public String getAllUsers() {
@@ -74,6 +85,11 @@ public class UserServiceImpl implements UserService {
             counter++;
         }
         return res.toString();
+    }
+
+    @Override
+    public Users getUsersByChatId(Long chatId) {
+        return userRepository.getUsersByChatId(chatId);
     }
 
     @Override

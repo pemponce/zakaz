@@ -1,6 +1,5 @@
 package com.example.telegrambot.model;
 
-import com.example.telegrambot.model.enumRole.Role;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -20,6 +19,10 @@ public class Users {
     private int verificationCode;
     private boolean isVerify;
     private Role role;
+
+    @ManyToOne
+    @JoinColumn(name = "group_id")
+    private Group group;
 
     @JoinColumn(table = "user_chat")
     private Long chatId;

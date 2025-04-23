@@ -21,6 +21,7 @@ public class Questions {
     private Long id;
 
     private String question;
+    private String questionGroup;
 
     private boolean morning;
 

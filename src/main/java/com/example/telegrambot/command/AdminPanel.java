@@ -13,11 +13,11 @@ import java.util.List;
 public class AdminPanel {
     public static ReplyKeyboard adminActions() {
         KeyboardRow row1 = new KeyboardRow();
-        row1.add("Добавить вопрос");
-        row1.add("Удалить вопрос");
+        row1.add("Добавить данные");
+        row1.add("Удалить данные");
 
         KeyboardRow row2 = new KeyboardRow();
-        row2.add("Вывести все вопросы");
+        row2.add("Вывести все данные");
         row2.add("Вывести всех пользователей");
 
 
@@ -53,16 +53,16 @@ public class AdminPanel {
         return keyboardMarkup;
     }
 
-    public static InlineKeyboardMarkup questionTypeButtons(String action) {
+    public static InlineKeyboardMarkup questionAndAlertTypeButtons(String action) {
         InlineKeyboardButton normalQuestionsBtn = new InlineKeyboardButton();
-        normalQuestionsBtn.setText("Обычные вопросы");
+        normalQuestionsBtn.setText("Вопросы");
         normalQuestionsBtn.setCallbackData(action + "_normal");
 
-        InlineKeyboardButton banQuestionsBtn = new InlineKeyboardButton();
-        banQuestionsBtn.setText("Вопросы для бана");
-        banQuestionsBtn.setCallbackData(action + "_ban");
+        InlineKeyboardButton alertsBtn = new InlineKeyboardButton();
+        alertsBtn.setText("Оповещения");
+        alertsBtn.setCallbackData(action + "_info");
 
-        List<InlineKeyboardButton> row = List.of(normalQuestionsBtn, banQuestionsBtn);
+        List<InlineKeyboardButton> row = List.of(normalQuestionsBtn, alertsBtn);
         List<List<InlineKeyboardButton>> rows = List.of(row);
 
         InlineKeyboardMarkup markup = new InlineKeyboardMarkup();

@@ -20,10 +20,11 @@ public interface QuestionsRepository extends JpaRepository<Questions, Long> {
     Long getMaxId();
     @Query("SELECT MIN(id) AS min_id FROM Questions")
     Long getMinId();
-    List<Questions> findByMorningTrue();
-    Questions findFirstByMorningTrueOrderByIdAsc();
-    Questions findFirstByMorningFalseOrderByIdAsc();
-    List<Questions> findByMorningFalse();
+    List<Questions> findByMorningTrueAndQuestionGroup(String group);
+    Questions findFirstByMorningTrueAndQuestionGroupOrderByIdAsc(String group);
+    Questions findFirstByMorningFalseAndQuestionGroupOrderByIdAsc(String group);
+    List<Questions> findByMorningFalseAndQuestionGroup(String group);
     Questions getQuestionsByQuestion(String question);
     void deleteById(Long questionId);
+    void deleteAllByIdIn(List<Long> id);
 }
