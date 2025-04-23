@@ -7,7 +7,7 @@ import com.example.telegrambot.command.UserPanel;
 import com.example.telegrambot.googleSheets.service.GoogleSheetsService;
 import com.example.telegrambot.help.Mailing;
 import com.example.telegrambot.model.*;
-import com.example.telegrambot.model.enumRole.Role;
+import com.example.telegrambot.model.Role;
 import com.example.telegrambot.repository.UserChatRepository;
 import com.example.telegrambot.repository.UserRepository;
 import com.example.telegrambot.service.AlertsService;
@@ -104,7 +104,7 @@ public class MyTelegramBot extends TelegramLongPollingBot {
             String groupSpreadsheetId = googleSheetsService.createSpreadsheetForGroup(text);
 
 
-            if(groupService.findByName(text).isEmpty()) {
+            if (groupService.findByName(text).isEmpty()) {
                 Group group = Group.builder()
                         .name(text)
                         .spreadsheetId(groupSpreadsheetId)
@@ -197,9 +197,12 @@ public class MyTelegramBot extends TelegramLongPollingBot {
                     sendMessage(chatId, "Вы не являетесь админом");
                 } else {
                     UserChat user = userChatRepository.getUserChatByChatId(chatId);
-                    List<Questions> questionsList = Mailing.morningQuestion() ?
-                            new ArrayList<>(questionsService.getMorningQuestions(currUser.getGroup().getName())) :
-                            new ArrayList<>(questionsService.getNotMorningQuestions(currUser.getGroup().getName()));
+                    List<Questions> questionsList = new ArrayList<>();
+                    if (Mailing.wasLastMailingAQuestion()) {
+                        questionsList = Mailing.isMorningLastMailing()
+                                ? questionsService.getMorningQuestions(currUser.getGroup().getName())
+                                : questionsService.getNotMorningQuestions(currUser.getGroup().getName());
+                    }
 
                     if (user.isWaitingForResponse()) {
                         userRequest(update, chatId, currUser, user, text, questionsList);
@@ -207,21 +210,6 @@ public class MyTelegramBot extends TelegramLongPollingBot {
                         if (currUser.getRole().equals(Role.ADMIN)) {
                             handleAdminCommands(text, chatId);
                         } else {
-                            if ("Вывести уведомления".equals(text)) {
-
-                                List<Alerts> alerts = alertsService.getAllAlerts(userRepository.getUsersByChatId(chatId).getGroup().getName());
-
-                                if (alerts.size() > 0) {
-                                    sendMessage(chatId, "Оповещения для группы - " + userRepository.getUsersByChatId(chatId).getGroup().getName());
-
-                                    String messageText = IntStream.range(0, alerts.size())
-                                            .mapToObj(i -> (i + 1) + ". " + alerts.get(i).getContent())
-                                            .collect(Collectors.joining("\n"));
-                                    sendMessage(chatId, messageText);
-                                } else {
-                                    sendMessage(chatId, "нет оповощений для группы - " + userRepository.getUsersByChatId(chatId).getGroup().getName());
-                                }
-                            }
                             sendMessage(chatId, "Дождитесь 23:50 чтобы ответить на вопросы");
                             sendUserPanel(chatId);
                         }
@@ -247,7 +235,7 @@ public class MyTelegramBot extends TelegramLongPollingBot {
                 .filter(q -> q.getId() > currentQuestionId && q.getId() <= maxId)
                 .findFirst()
                 .orElse(null);
-        sendMessage(chatId, "Ваш ответ записан\n```\n" + text + "\n```");
+        sendMessage(chatId, "Ваш ответ записан\n<strong>" + text + "</strong>");
 
         messageService.saveMessage(update, null, currUser, flag);
 
@@ -342,9 +330,9 @@ public class MyTelegramBot extends TelegramLongPollingBot {
 
     private void sendQuestionTypeButtonsBasedOnText(String text, Long chatId) {
         switch (text) {
-            case "Добавить вопрос" -> sendQuestionTypeButtons(chatId, "add");
-            case "Удалить вопрос" -> sendQuestionTypeButtons(chatId, "delete");
-            case "Вывести все вопросы" -> sendQuestionTypeButtons(chatId, "list");
+            case "Добавить данные" -> sendQuestionTypeButtons(chatId, "add");
+            case "Удалить данные" -> sendQuestionTypeButtons(chatId, "delete");
+            case "Вывести все данные" -> sendQuestionTypeButtons(chatId, "list");
             case "Вывести всех пользователей" -> {
                 sendMessage(chatId, "Вот список всех пользователей:");
                 sendMessage(chatId, userService.getAllUsers());
@@ -387,12 +375,12 @@ public class MyTelegramBot extends TelegramLongPollingBot {
             case "add_normal" -> {
                 sendCancelBtn(chatId);
                 userStates.put(chatId, "WAITING_FOR_NEW_QUESTION");
-                sendMessage(chatId, "Пожалуйста, введите новый обычный вопрос:");
+                sendMessage(chatId, "Пожалуйста, введите новый вопрос:");
             }
             case "add_info" -> {
                 sendCancelBtn(chatId);
                 userStates.put(chatId, "WAITING_FOR_NEW_BAN_QUESTION");
-                sendMessage(chatId, "Пожалуйста, введите новый вопрос для бана:");
+                sendMessage(chatId, "Пожалуйста, введите новое обьявление/оповещение:");
             }
             case "delete_normal" -> {
                 sendCancelBtn(chatId);
@@ -402,24 +390,38 @@ public class MyTelegramBot extends TelegramLongPollingBot {
             case "delete_info" -> {
                 sendCancelBtn(chatId);
                 userStates.put(chatId, "WAITING_FOR_BAN_QUESTION_TO_DELETE");
-                sendMessage(chatId, "Введите вопрос для бана, который хотите удалить:");
+                sendMessage(chatId, "Введите обьявление/оповещение, которое хотите удалить:");
             }
             case "list_normal" -> {
-                sendMessage(chatId, "Вот список всех обычных вопросов:");
+                sendMessage(chatId, "Вот список всех вопросов:");
                 sendMessage(chatId, questionsService.getAllQuestionsContent());
                 sendAdminPanel(chatId);
             }
             case "list_info" -> {
                 sendMessage(chatId, "Вот список всех оповещений:");
 
+                /*
+                TODO: вывести это логику в сервайс алертс
+                 */
+
                 List<Alerts> alerts = alertsService.getAllAlerts(userRepository.getUsersByChatId(chatId).getGroup().getName());
 
-                sendMessage(chatId, "Оповещения для группы - " + userRepository.getUsersByChatId(chatId).getGroup().getName());
+                if (alerts.size() > 0) {
+                    sendMessage(chatId, "Оповещения для группы - " + userRepository.getUsersByChatId(chatId).getGroup().getName());
 
-                String messageText = IntStream.range(0, alerts.size())
-                        .mapToObj(i -> (i + 1) + ". " + alerts.get(i).getContent())
-                        .collect(Collectors.joining("\n"));
-                sendMessage(chatId, messageText);
+                    String messageText = IntStream.range(0, alerts.size())
+                            .mapToObj(i -> (alerts.get(i).isActive() ?
+                                    Emoji.ALARM.getData() + " " : Emoji.CHECKED.getData() + " ")
+                                    + (i + 1) + " - " + alerts.get(i).getContent()
+                            )
+                            .collect(Collectors.joining("\n"));
+
+
+                    sendMessage(chatId, messageText);
+
+                } else {
+                    sendMessage(chatId, "нет оповощений для группы - " + userRepository.getUsersByChatId(chatId).getGroup().getName());
+                }
 
                 sendAdminPanel(chatId);
             }
@@ -467,9 +469,9 @@ public class MyTelegramBot extends TelegramLongPollingBot {
         SendMessage message = new SendMessage();
         message.setChatId(chatId.toString());
         String text = switch (action) {
-            case "add" -> "Выберите тип вопроса для добавления:";
-            case "delete" -> "Выберите тип вопроса для удаления:";
-            case "list" -> "Выберите тип вопроса для отображения:";
+            case "add" -> "Выберите тип данных для добавления:";
+            case "delete" -> "Выберите тип данных для удаления:";
+            case "list" -> "Выберите тип данных для отображения:";
             default -> "Ошибка!";
         };
         message.setText(text);

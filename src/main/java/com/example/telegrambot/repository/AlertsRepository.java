@@ -11,7 +11,10 @@ import java.util.List;
 public interface AlertsRepository extends JpaRepository<Alerts, Long> {
 
     List<Alerts> findAllByAlertGroupAndActiveFalse(String group);
+    List<Alerts> findAllByAlertGroup(String group);
+    Alerts findTopByAlertGroupAndActiveTrue(String group);
     Alerts findByContentAndAlertGroupAndActiveFalse(String content, String group);
+    Alerts findByContentAndAlertGroup(String content, String group);
     void deleteById(@NotNull Long id);
 
 }

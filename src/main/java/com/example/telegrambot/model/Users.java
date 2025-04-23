@@ -1,6 +1,5 @@
 package com.example.telegrambot.model;
 
-import com.example.telegrambot.model.enumRole.Role;
 import jakarta.persistence.*;
 import lombok.*;
 

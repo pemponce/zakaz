@@ -13,11 +13,11 @@ import java.util.List;
 public class AdminPanel {
     public static ReplyKeyboard adminActions() {
         KeyboardRow row1 = new KeyboardRow();
-        row1.add("Добавить вопрос");
-        row1.add("Удалить вопрос");
+        row1.add("Добавить данные");
+        row1.add("Удалить данные");
 
         KeyboardRow row2 = new KeyboardRow();
-        row2.add("Вывести все вопросы");
+        row2.add("Вывести все данные");
         row2.add("Вывести всех пользователей");
 
 
@@ -55,7 +55,7 @@ public class AdminPanel {
 
     public static InlineKeyboardMarkup questionAndAlertTypeButtons(String action) {
         InlineKeyboardButton normalQuestionsBtn = new InlineKeyboardButton();
-        normalQuestionsBtn.setText("Обычные вопросы");
+        normalQuestionsBtn.setText("Вопросы");
         normalQuestionsBtn.setCallbackData(action + "_normal");
 
         InlineKeyboardButton alertsBtn = new InlineKeyboardButton();

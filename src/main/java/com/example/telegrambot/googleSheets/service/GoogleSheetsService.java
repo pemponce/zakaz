@@ -63,7 +63,7 @@ public class GoogleSheetsService {
                 client,
                 SCOPES)
                 .setDataStoreFactory(new FileDataStoreFactory(new java.io.File(TOKENS_DIRECTORY_PATH)))
-                .setAccessType("online")
+                .setAccessType("offline")
                 .build();
         var credentials = new AuthorizationCodeInstalledApp(flow, receiver)
                 .authorize("user");

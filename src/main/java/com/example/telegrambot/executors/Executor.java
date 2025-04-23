@@ -19,6 +19,7 @@ public class Executor {
     public void broadcastMessage(Long chatId, String text) {
         executionWrapper(() -> {
             SendMessage message = new SendMessage();
+            message.setParseMode("HTML");
             message.setChatId(chatId.toString());
             message.setText(text);
 

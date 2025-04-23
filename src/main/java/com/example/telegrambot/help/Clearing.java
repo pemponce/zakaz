@@ -2,7 +2,7 @@ package com.example.telegrambot.help;
 
 import com.example.telegrambot.executors.Executor;
 import com.example.telegrambot.model.UserChat;
-import com.example.telegrambot.model.enumRole.Role;
+import com.example.telegrambot.model.Role;
 import com.example.telegrambot.service.QuestionsService;
 import com.example.telegrambot.service.UserChatService;
 import com.example.telegrambot.service.UserService;

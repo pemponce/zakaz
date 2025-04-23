@@ -5,7 +5,7 @@ import com.example.telegrambot.help.GenerateCode;
 import com.example.telegrambot.model.Group;
 import com.example.telegrambot.model.UserChat;
 import com.example.telegrambot.model.Users;
-import com.example.telegrambot.model.enumRole.Role;
+import com.example.telegrambot.model.Role;
 import com.example.telegrambot.repository.UserChatRepository;
 import com.example.telegrambot.repository.UserRepository;
 import com.example.telegrambot.service.UserService;
