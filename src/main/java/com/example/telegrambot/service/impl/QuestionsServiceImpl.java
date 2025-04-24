@@ -29,11 +29,13 @@ public class QuestionsServiceImpl implements QuestionsService {
     }
 
     @Override
-    public boolean createQuestion(String question) {
+    public boolean createQuestion(String question, String group) {
         boolean flag = false;
         if (!questionsRepository.existsByQuestion(question) || questionsRepository.findAll().isEmpty()) {
             Questions newQuestion = Questions.builder()
                     .question(question)
+                    .questionGroup(group)
+                    .isRelevant(true)
                     .morning(false)
                     .build();
             questionsRepository.save(newQuestion);
@@ -143,11 +145,4 @@ public class QuestionsServiceImpl implements QuestionsService {
     public Questions findFirstByMorningFalse(String group) {
         return questionsRepository.findFirstByMorningFalseAndQuestionGroupOrderByIdAsc(group);
     }
-
-    @Override
-    public void saveQuestion(Questions question) {
-        questionsRepository.save(question);
-    }
-
-
 }

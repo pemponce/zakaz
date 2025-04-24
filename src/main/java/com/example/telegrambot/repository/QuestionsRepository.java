@@ -25,6 +25,4 @@ public interface QuestionsRepository extends JpaRepository<Questions, Long> {
     Questions findFirstByMorningFalseAndQuestionGroupOrderByIdAsc(String group);
     List<Questions> findByMorningFalseAndQuestionGroup(String group);
     Questions getQuestionsByQuestion(String question);
-    void deleteById(Long questionId);
-    void deleteAllByIdIn(List<Long> id);
 }

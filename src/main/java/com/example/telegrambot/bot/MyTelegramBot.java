@@ -149,10 +149,7 @@ public class MyTelegramBot extends TelegramLongPollingBot {
                     sendAdminPanel(chatId);
                     return;
                 }
-                Questions newQuestion = new Questions();
-                newQuestion.setQuestion(text);
-                newQuestion.setQuestionGroup(currUser.getGroup().getName());
-                questionsService.saveQuestion(newQuestion);
+                questionsService.createQuestion(text, userService.getUsersByChatId(chatId).getGroup().getName());
                 sendMessage(chatId, "Новый вопрос добавлен.");
                 userStates.remove(chatId);
                 sendAdminPanel(chatId);
@@ -239,7 +236,6 @@ public class MyTelegramBot extends TelegramLongPollingBot {
 
         messageService.saveMessage(update, null, currUser, flag);
 
-
         if (nextQuestion != null) {
             user.setCurrentQuestionId(nextQuestion.getId());
             sendMessage(chatId, nextQuestion.getQuestion());
@@ -247,10 +243,9 @@ public class MyTelegramBot extends TelegramLongPollingBot {
             user.setWaitingForResponse(true);
             userChatRepository.save(user);
         }
-        // Если вопросов больше нет
         else {
             user.setWaitingForResponse(false);
-            user.setCurrentQuestionId(minId); // Сбрасываем на минимальный ID
+            user.setCurrentQuestionId(minId);
             userChatRepository.save(user);
             if (ban) {
                 messageService.saveMessage(update, answers, currUser, flag);

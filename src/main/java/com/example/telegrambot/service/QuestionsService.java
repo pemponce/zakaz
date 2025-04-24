@@ -8,7 +8,7 @@ import java.util.Optional;
 public interface QuestionsService {
     Long getQuestionsLength();
     Questions getQuestion(Long id);
-    boolean createQuestion(String question);
+    boolean createQuestion(String question, String group);
     void deleteQuestion(String question);
     void deleteAllQuestions();
     String getAllQuestionsContent();
@@ -21,6 +21,4 @@ public interface QuestionsService {
     List<Questions> getNotMorningQuestions(String group);
     Questions findFirstByMorningTrue(String group);
     Questions findFirstByMorningFalse(String group);
-
-    void saveQuestion(Questions question);
 }

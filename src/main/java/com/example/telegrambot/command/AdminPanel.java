@@ -71,4 +71,20 @@ public class AdminPanel {
         return markup;
     }
 
+
+    /*
+    TODO: Сделать, кнопку подробной информации для админа о рассылках и вопросах (их содержимое)!
+     */
+    public static InlineKeyboardMarkup contentOfMailingButton() {
+        InlineKeyboardButton moreInfoButton = new InlineKeyboardButton();
+        moreInfoButton.setText("Информация о рассылке");
+        moreInfoButton.setCallbackData("informationContent");
+
+        List<InlineKeyboardButton> row = List.of(moreInfoButton);
+        List<List<InlineKeyboardButton>> rows = List.of(row);
+        InlineKeyboardMarkup markup = new InlineKeyboardMarkup();
+        markup.setKeyboard(rows);
+        return markup;
+    }
+
 }

@@ -16,6 +16,10 @@ import java.util.stream.Stream;
 @Builder
 public class Questions {
 
+    /*
+    TODO: Добавить еще одно поле isRelevant (является ли актуальным вопросом, или нет)
+     */
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -24,5 +28,6 @@ public class Questions {
     private String questionGroup;
 
     private boolean morning;
+    private boolean isRelevant;
 
 }

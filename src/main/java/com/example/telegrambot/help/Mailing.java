@@ -160,7 +160,7 @@ public class Mailing {
         MORNING, DAILY, ALERT
     }
 
-    @Scheduled(cron = "0 0/2 * * * *")
+    @Scheduled(cron = "0 0/1 * * * *")
     public void sendDaily() {
         sendToAllUsers(MailingType.DAILY);
     }
@@ -170,7 +170,7 @@ public class Mailing {
         sendToAllUsers(MailingType.MORNING);
     }
 
-    @Scheduled(cron = "0 0/1 * * * *")
+    @Scheduled(cron = "0 30 2 * * *")
     public void sendAlerts() {
         sendToAllUsers(MailingType.ALERT);
     }
@@ -237,6 +237,7 @@ public class Mailing {
         } else {
             executor.broadcastMessage(chat.getChatId(), Emoji.QUESTION.getData().repeat(3) + "\nВопросов сегодня нет" + Emoji.ALERT.getData());
         }
+        lastMailingType = morning ? MailingType.MORNING : MailingType.DAILY;
     }
 
     private void handleIneligibleUser(Users user, MailingType type) {
@@ -266,6 +267,10 @@ public class Mailing {
 
     public static boolean isMorningLastMailing() {
         return lastMailingType == MailingType.MORNING;
+    }
+
+    public static boolean isDailyLastMailing() {
+        return lastMailingType == MailingType.DAILY;
     }
 
     public static boolean wasLastMailingAQuestion() {
