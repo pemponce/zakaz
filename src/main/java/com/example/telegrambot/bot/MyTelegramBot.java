@@ -394,9 +394,6 @@ public class MyTelegramBot extends TelegramLongPollingBot {
             }
             case "list_info" -> {
                 sendMessage(chatId, "Вот список всех оповещений:");
-                /*
-                TODO: вывести это логику в сервайс алертс
-                 */
                 sendMessage(chatId, alertsService.getAllAlertsContent(userRepository.getUsersByChatId(chatId).getGroup().getName()));
                 sendAdminPanel(chatId);
             }

@@ -28,6 +28,6 @@ public class Questions {
     private String questionGroup;
 
     private boolean morning;
-    private boolean isRelevant;
+    private boolean relevant;
 
 }

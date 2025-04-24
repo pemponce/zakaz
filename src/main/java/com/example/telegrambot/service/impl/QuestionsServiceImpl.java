@@ -35,7 +35,7 @@ public class QuestionsServiceImpl implements QuestionsService {
             Questions newQuestion = Questions.builder()
                     .question(question)
                     .questionGroup(group)
-                    .isRelevant(true)
+                    .relevant(true)
                     .morning(false)
                     .build();
             questionsRepository.save(newQuestion);
@@ -127,22 +127,32 @@ public class QuestionsServiceImpl implements QuestionsService {
         return questionsRepository.findAll();
     }
 
+    @Override
+    public List<Questions> getAllQuestionsByRelevantTrue() {
+        return questionsRepository.findAllByRelevantTrue();
+    }
+
     public List<Questions> getMorningQuestions(String group) {
-        return questionsRepository.findByMorningTrueAndQuestionGroup(group);
+        return questionsRepository.findByMorningTrueAndRelevantTrueAndQuestionGroup(group);
     }
 
     @Override
     public List<Questions> getNotMorningQuestions(String group) {
-        return questionsRepository.findByMorningFalseAndQuestionGroup(group);
+        return questionsRepository.findByMorningFalseAndRelevantTrueAndQuestionGroup(group);
     }
 
     @Override
     public Questions findFirstByMorningTrue(String group) {
-        return questionsRepository.findFirstByMorningTrueAndQuestionGroupOrderByIdAsc(group);
+        return questionsRepository.findFirstByMorningTrueAndRelevantTrueAndQuestionGroupOrderByIdAsc(group);
     }
 
     @Override
     public Questions findFirstByMorningFalse(String group) {
-        return questionsRepository.findFirstByMorningFalseAndQuestionGroupOrderByIdAsc(group);
+        return questionsRepository.findFirstByMorningFalseAndRelevantTrueAndQuestionGroupOrderByIdAsc(group);
+    }
+
+    @Override
+    public Questions save(Questions question) {
+        return questionsRepository.save(question);
     }
 }

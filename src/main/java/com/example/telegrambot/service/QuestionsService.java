@@ -17,8 +17,10 @@ public interface QuestionsService {
     Long getMaxId();
     Long getMinId();
     List<Questions> getAllQuestions();
+    List<Questions> getAllQuestionsByRelevantTrue();
     List<Questions> getMorningQuestions(String group);
     List<Questions> getNotMorningQuestions(String group);
     Questions findFirstByMorningTrue(String group);
     Questions findFirstByMorningFalse(String group);
+    Questions save(Questions question);
 }
