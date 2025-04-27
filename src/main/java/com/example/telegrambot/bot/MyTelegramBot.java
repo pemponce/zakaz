@@ -26,8 +26,6 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import javax.annotation.Nullable;
 import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 @Component
 public class MyTelegramBot extends TelegramLongPollingBot {
@@ -478,7 +476,7 @@ public class MyTelegramBot extends TelegramLongPollingBot {
         try {
             execute(message);
         } catch (TelegramApiException e) {
-            e.printStackTrace();
+            System.out.println("Ошибка при отправке сообщения: " + e.getMessage());
         }
     }
 
