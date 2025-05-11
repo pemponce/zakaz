@@ -103,10 +103,7 @@ public class MyTelegramBot extends TelegramLongPollingBot {
 
 
             if (groupService.findByName(text).isEmpty()) {
-                Group group = Group.builder()
-                        .name(text)
-                        .spreadsheetId(groupSpreadsheetId)
-                        .build();
+                Group group = Group.builder().name(text).spreadsheetId(groupSpreadsheetId).build();
 
                 groupService.create(group);
                 userService.updateUserGroup(currUser.getUsername(), group);
@@ -194,9 +191,7 @@ public class MyTelegramBot extends TelegramLongPollingBot {
                     UserChat user = userChatRepository.getUserChatByChatId(chatId);
                     List<Questions> questionsList = new ArrayList<>();
                     if (Mailing.wasLastMailingAQuestion()) {
-                        questionsList = Mailing.isMorningLastMailing()
-                                ? questionsService.getMorningQuestions(currUser.getGroup().getName())
-                                : questionsService.getNotMorningQuestions(currUser.getGroup().getName());
+                        questionsList = Mailing.isMorningLastMailing() ? questionsService.getMorningQuestions(currUser.getGroup().getName()) : questionsService.getNotMorningQuestions(currUser.getGroup().getName());
                     }
 
                     if (user.isWaitingForResponse()) {
@@ -214,8 +209,7 @@ public class MyTelegramBot extends TelegramLongPollingBot {
         }
     }
 
-    private void userRequest(Update update, Long chatId, Users currUser, UserChat user,
-                             String text, @Nullable List<Questions> questionsList) {
+    private void userRequest(Update update, Long chatId, Users currUser, UserChat user, String text, @Nullable List<Questions> questionsList) {
 
         long currentQuestionId = user.getCurrentQuestionId();
         long maxId;
@@ -226,10 +220,7 @@ public class MyTelegramBot extends TelegramLongPollingBot {
         maxId = questionsService.getMaxId();
         minId = questionsService.getMinId();
 
-        nextQuestion = questionsList.stream()
-                .filter(q -> q.getId() > currentQuestionId && q.getId() <= maxId)
-                .findFirst()
-                .orElse(null);
+        nextQuestion = questionsList.stream().filter(q -> q.getId() > currentQuestionId && q.getId() <= maxId).findFirst().orElse(null);
         sendMessage(chatId, "Ваш ответ записан\n<strong>" + text + "</strong>");
 
         messageService.saveMessage(update, null, currUser, flag);
@@ -240,8 +231,7 @@ public class MyTelegramBot extends TelegramLongPollingBot {
 
             user.setWaitingForResponse(true);
             userChatRepository.save(user);
-        }
-        else {
+        } else {
             user.setWaitingForResponse(false);
             user.setCurrentQuestionId(minId);
             userChatRepository.save(user);
@@ -393,6 +383,23 @@ public class MyTelegramBot extends TelegramLongPollingBot {
             case "list_info" -> {
                 sendMessage(chatId, "Вот список всех оповещений:");
                 sendMessage(chatId, alertsService.getAllAlertsContent(userRepository.getUsersByChatId(chatId).getGroup().getName()));
+                sendAdminPanel(chatId);
+            }
+            case "morningInformationContent" -> {
+                sendMessage(chatId, "Информация о утренней рассылки:");
+                sendMessage(chatId, questionsService.questionListToString(questionsService
+                        .getMorningQuestions(userRepository.getUsersByChatId(chatId).getGroup().getName())));
+                sendAdminPanel(chatId);
+            }
+            case "dailyInformationContent" -> {
+                sendMessage(chatId, "Информация о дневной рассылки:");
+                sendMessage(chatId, questionsService.questionListToString(questionsService
+                        .getNotMorningQuestions(userRepository.getUsersByChatId(chatId).getGroup().getName())));
+                sendAdminPanel(chatId);
+            }
+            case "alertInformationContent" -> {
+                sendMessage(chatId, "Информация об оповещении/обьявлении:");
+                sendMessage(chatId, alertsService.getLastGroupAlert(userRepository.getUsersByChatId(chatId).getGroup().getName()).getContent());
                 sendAdminPanel(chatId);
             }
             default -> {

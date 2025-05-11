@@ -10,6 +10,8 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 
 @Service
@@ -139,6 +141,15 @@ public class QuestionsServiceImpl implements QuestionsService {
     @Override
     public List<Questions> getNotMorningQuestions(String group) {
         return questionsRepository.findByMorningFalseAndRelevantTrueAndQuestionGroup(group);
+    }
+
+    @Override
+    public String questionListToString(List<Questions> questions) {
+        var text = "";
+        text += IntStream.range(0, questions.size()).mapToObj(
+                i -> (i + 1) + " - " + questions.get(i).getQuestion()
+        ).collect(Collectors.joining("\n"));
+        return text;
     }
 
     @Override

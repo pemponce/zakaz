@@ -75,10 +75,10 @@ public class AdminPanel {
     /*
     TODO: Сделать, кнопку подробной информации для админа о рассылках и вопросах (их содержимое)!
      */
-    public static InlineKeyboardMarkup contentOfMailingButton() {
+    public static InlineKeyboardMarkup contentOfMailingButton(String typeInfo) {
         InlineKeyboardButton moreInfoButton = new InlineKeyboardButton();
         moreInfoButton.setText("Информация о рассылке");
-        moreInfoButton.setCallbackData("informationContent");
+        moreInfoButton.setCallbackData(typeInfo + "InformationContent");
 
         List<InlineKeyboardButton> row = List.of(moreInfoButton);
         List<List<InlineKeyboardButton>> rows = List.of(row);

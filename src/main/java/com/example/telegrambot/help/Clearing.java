@@ -44,7 +44,7 @@ public class Clearing {
                 if (user.getRole().equals(Role.ADMIN)) {
 
                     executor.broadcastMessage(chatId, "Список вопросов был удален!\nПожалуйста успейте заполнить новый" +
-                            " список вопросов до 13:00 следущего дня\nИли не заполняйте если вопросов нет");
+                            " список вопросов до 13:00 следущего дня\nИли не заполняйте если вопросов нет", Mailing.adminPanelExecute);
                 }
             }
 

@@ -20,6 +20,7 @@ public interface QuestionsService {
     List<Questions> getAllQuestionsByRelevantTrue();
     List<Questions> getMorningQuestions(String group);
     List<Questions> getNotMorningQuestions(String group);
+    String questionListToString(List<Questions> questions);
     Questions findFirstByMorningTrue(String group);
     Questions findFirstByMorningFalse(String group);
     Questions save(Questions question);
