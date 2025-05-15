@@ -162,12 +162,12 @@ public class Mailing {
         MORNING, DAILY, ALERT
     }
 
-    @Scheduled(cron = "0 44 22 * * *")
+    @Scheduled(cron = "0 0/1 * * * *")
     public void sendDaily() {
         sendToAllUsers(MailingType.DAILY);
     }
 
-    @Scheduled(cron = "0 45 22 * * *")
+    @Scheduled(cron = "0 30 10 * * *")
     public void sendMorning() {
         sendToAllUsers(MailingType.MORNING);
     }
@@ -212,16 +212,19 @@ public class Mailing {
     }
 
     private void sendAlert(Users user, UserChat chat) {
-        var alertText = alertsService.getLastGroupAlert(user.getGroup().getName()).getContent();
-        if (alertText != null) {
-
+        if (alertsService.getLastGroupAlert(user.getGroup().getName()) != null) {
+            var alert = alertsService.getLastGroupAlert(user.getGroup().getName());
+            var alertText = alert.getContent();
             alertText = highlightEnglishWordsAsCode(alertText);
             executor.broadcastMessage(chat.getChatId(), Emoji.ALERT.getData().repeat(3) + "\nОповещение для группы " +
                     user.getGroup().getName() + ":\n" + "<strong>" + alertText + "</strong>", adminPanelExecute);
+            alert.setActive(false);
+            alertsService.save(alert);
         } else {
             executor.broadcastMessage(chat.getChatId(), Emoji.ALERT.getData().repeat(3) + "\nНет оповещений для группы " +
                     user.getGroup().getName(), adminPanelExecute);
         }
+
     }
 
     private void sendQuestion(Users user, UserChat chat, boolean morning) {
@@ -257,7 +260,8 @@ public class Mailing {
                     " Рассылка дневных вопросов началась", adminPanelExecute, "daily");
             case ALERT -> executor.broadcastMessage(user.getChatId(), Emoji.WARNING +
                     " Рассылка актуальных оповещений началась", adminPanelExecute, "alert");
-        };
+        }
+        ;
 
         adminPanelExecute = false;
     }

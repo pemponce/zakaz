@@ -68,4 +68,9 @@ public class AlertServiceImpl implements AlertsService {
 
         return messageText;
     }
+
+    @Override
+    public void save(Alerts alerts) {
+        alertsRepository.save(alerts);
+    }
 }
