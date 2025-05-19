@@ -25,5 +25,6 @@ public interface QuestionsRepository extends JpaRepository<Questions, Long> {
     Questions findFirstByMorningTrueAndRelevantTrueAndQuestionGroupOrderByIdAsc(String group);
     Questions findFirstByMorningFalseAndRelevantTrueAndQuestionGroupOrderByIdAsc(String group);
     List<Questions> findAllByRelevantTrue();
+    List<Questions> findAllByRelevantTrueAndQuestionGroup(String group);
     Questions getQuestionsByQuestion(String question);
 }

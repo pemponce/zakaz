@@ -51,7 +51,7 @@ public class HandleCallback {
             }
             case "list_normal" -> {
                 sendMessageService.sendMessage(chatId, "Вот список всех вопросов:");
-                sendMessageService.sendMessage(chatId, questionsService.getAllQuestionsContent());
+                sendMessageService.sendMessage(chatId, questionsService.getAllQuestionsContent(userRepository.getUsersByChatId(chatId).getGroup().getName()));
                 panelSender.sendAdminPanel(chatId);
             }
             case "list_info" -> {

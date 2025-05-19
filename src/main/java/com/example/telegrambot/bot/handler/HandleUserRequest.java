@@ -51,7 +51,6 @@ public class HandleUserRequest {
             user.setWaitingForResponse(false);
             user.setCurrentQuestionId(minId);
             userChatRepository.save(user);
-            messageService.saveMessage(update, answers, currUser, flag);
             answers.clear();
             sendMessageService.sendMessage(chatId, "Спасибо! Вы ответили на все вопросы.");
         }

@@ -104,7 +104,8 @@ public class HandleVerifiedUser {
                     UserChat user = userChatRepository.getUserChatByChatId(chatId);
                     List<Questions> questionsList = new ArrayList<>();
                     if (Mailing.wasLastMailingAQuestion()) {
-                        questionsList = Mailing.isMorningLastMailing() ? questionsService.getMorningQuestions(currUser.getGroup().getName()) : questionsService.getNotMorningQuestions(currUser.getGroup().getName());
+                        questionsList = Mailing.isMorningLastMailing() ? questionsService.getMorningQuestions(currUser.getGroup().getName())
+                                : questionsService.getNotMorningQuestions(currUser.getGroup().getName());
                     }
 
                     if (user.isWaitingForResponse()) {

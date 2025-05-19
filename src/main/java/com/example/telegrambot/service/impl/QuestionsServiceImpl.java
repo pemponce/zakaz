@@ -1,5 +1,6 @@
 package com.example.telegrambot.service.impl;
 
+import com.example.telegrambot.model.Emoji;
 import com.example.telegrambot.model.Questions;
 import com.example.telegrambot.repository.QuestionsRepository;
 import com.example.telegrambot.service.QuestionsService;
@@ -58,7 +59,7 @@ public class QuestionsServiceImpl implements QuestionsService {
     public void deleteAllQuestions() {
         try {
             var allQuestions = getAllQuestions().stream().map(Questions::getId).toList();
-            for (Long id: allQuestions) {
+            for (Long id : allQuestions) {
 
                 questionsRepository.deleteById(id);
             }
@@ -67,20 +68,29 @@ public class QuestionsServiceImpl implements QuestionsService {
         }
     }
 
+
+    /*
+    TODO: Сделать для конкретной группы
+     */
     @Override
-    public String getAllQuestionsContent() {
+    public String getAllQuestionsContent(String group) {
         String res = "";
-        List<Questions> questions = new ArrayList<>(questionsRepository.findAll());
-        int counter = 1;
-        String time = "";
-        for (Questions question : questions) {
-            if (question.isMorning()) {
-                time = "10:30";
-            } else {
-                time = "23:50";
+        if (questionsRepository.findAllByRelevantTrueAndQuestionGroup(group).size() > 0) {
+
+            List<Questions> questions = new ArrayList<>(questionsRepository.findAllByRelevantTrueAndQuestionGroup(group));
+            int counter = 1;
+            String time;
+            for (Questions question : questions) {
+                if (question.isMorning()) {
+                    time = "10:30";
+                } else {
+                    time = "23:50";
+                }
+                res += counter + " - " + question.getQuestion() + " (" + time + ")" + "\n";
+                counter++;
             }
-            res += counter + " - " + question.getQuestion() + " (" + time + ")" + "\n";
-            counter++;
+        } else {
+            res += Emoji.WARNING.getData() + "Нет вопросов для группы - " + group;
         }
         return res;
     }
@@ -94,7 +104,7 @@ public class QuestionsServiceImpl implements QuestionsService {
     public boolean setIsMorning(String question, String isMorning) {
         boolean flag = true;
 
-        if(questionsRepository.getQuestionsByQuestion(question) != null) {
+        if (questionsRepository.getQuestionsByQuestion(question) != null) {
             Questions currQuestion = questionsRepository.getQuestionsByQuestion(question);
 
             switch (isMorning.toLowerCase()) {

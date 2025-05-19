@@ -172,7 +172,7 @@ public class Mailing {
         sendToAllUsers(MailingType.MORNING);
     }
 
-    @Scheduled(cron = "0 46 22 * * *")
+    @Scheduled(cron = "0 30 12 * * *")
     public void sendAlerts() {
         sendToAllUsers(MailingType.ALERT);
     }

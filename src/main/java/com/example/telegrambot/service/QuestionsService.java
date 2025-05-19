@@ -11,7 +11,7 @@ public interface QuestionsService {
     boolean createQuestion(String question, String group);
     void deleteQuestion(String question);
     void deleteAllQuestions();
-    String getAllQuestionsContent();
+    String getAllQuestionsContent(String group);
     List<Questions> getAll();
     boolean setIsMorning(String question, String isMorning);
     Long getMaxId();
