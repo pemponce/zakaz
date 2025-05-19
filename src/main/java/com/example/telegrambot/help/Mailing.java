@@ -156,11 +156,13 @@ public class Mailing {
 
     private static MailingType lastMailingType;
 
+    static boolean adminPanelExecute = false;
+
     private enum MailingType {
         MORNING, DAILY, ALERT
     }
 
-    @Scheduled(cron = "0 0/2 * * * *")
+    @Scheduled(cron = "0 0/1 * * * *")
     public void sendDaily() {
         sendToAllUsers(MailingType.DAILY);
     }
@@ -170,7 +172,7 @@ public class Mailing {
         sendToAllUsers(MailingType.MORNING);
     }
 
-    @Scheduled(cron = "0 0/1 * * * *")
+    @Scheduled(cron = "0 30 12 * * *")
     public void sendAlerts() {
         sendToAllUsers(MailingType.ALERT);
     }
@@ -210,16 +212,19 @@ public class Mailing {
     }
 
     private void sendAlert(Users user, UserChat chat) {
-        var alertText = alertsService.getLastGroupAlert(user.getGroup().getName()).getContent();
-        if (alertText != null) {
-
+        if (alertsService.getLastGroupAlert(user.getGroup().getName()) != null) {
+            var alert = alertsService.getLastGroupAlert(user.getGroup().getName());
+            var alertText = alert.getContent();
             alertText = highlightEnglishWordsAsCode(alertText);
             executor.broadcastMessage(chat.getChatId(), Emoji.ALERT.getData().repeat(3) + "\nОповещение для группы " +
-                    user.getGroup().getName() + ":\n" + "<strong>" + alertText + "</strong>");
+                    user.getGroup().getName() + ":\n" + "<strong>" + alertText + "</strong>", adminPanelExecute);
+            alert.setActive(false);
+            alertsService.save(alert);
         } else {
             executor.broadcastMessage(chat.getChatId(), Emoji.ALERT.getData().repeat(3) + "\nНет оповещений для группы " +
-                    user.getGroup().getName());
+                    user.getGroup().getName(), adminPanelExecute);
         }
+
     }
 
     private void sendQuestion(Users user, UserChat chat, boolean morning) {
@@ -228,31 +233,37 @@ public class Mailing {
                 : questionsService.findFirstByMorningFalse(user.getGroup().getName());
 
         if (question != null) {
-            executor.broadcastMessage(chat.getChatId(), Emoji.QUESTION.getData().repeat(3) + "\nПожалуйста ответьте на все вопросы");
+            executor.broadcastMessage(chat.getChatId(), Emoji.QUESTION.getData().repeat(3) + "\nПожалуйста ответьте на все вопросы", adminPanelExecute);
 
             chat.setCurrentQuestionId(question.getId());
             chat.setWaitingForResponse(true);
             userChatRepository.save(chat);
-            executor.broadcastMessage(user.getChatId(), question.getQuestion());
+            executor.broadcastMessage(user.getChatId(), question.getQuestion(), adminPanelExecute);
         } else {
-            executor.broadcastMessage(chat.getChatId(), Emoji.QUESTION.getData().repeat(3) + "\nВопросов сегодня нет" + Emoji.ALERT.getData());
+            executor.broadcastMessage(chat.getChatId(), Emoji.QUESTION.getData().repeat(3) + "\nВопросов сегодня нет" + Emoji.ALERT.getData(), adminPanelExecute);
         }
+        lastMailingType = morning ? MailingType.MORNING : MailingType.DAILY;
     }
 
     private void handleIneligibleUser(Users user, MailingType type) {
         if (!user.isVerify()) {
             var timeHint = type == MailingType.MORNING ? "10:30" : "20:30";
-            executor.broadcastMessage(user.getChatId(), "Авторизируйтесь! следующая рассылка будет в " + timeHint);
+            executor.broadcastMessage(user.getChatId(), "Авторизируйтесь! следующая рассылка будет в " + timeHint, adminPanelExecute);
             return;
         }
+        adminPanelExecute = true;
 
-        var message = switch (type) {
-            case MORNING -> Emoji.WARNING + " Рассылка утренних вопросов началась";
-            case DAILY -> Emoji.WARNING + " Рассылка дневных вопросов началась";
-            case ALERT -> Emoji.WARNING + " Рассылка актуальных оповещений началась";
-        };
+        switch (type) {
+            case MORNING -> executor.broadcastMessage(user.getChatId(), Emoji.WARNING +
+                    " Рассылка утренних вопросов началась", adminPanelExecute, "morning");
+            case DAILY -> executor.broadcastMessage(user.getChatId(), Emoji.WARNING +
+                    " Рассылка дневных вопросов началась", adminPanelExecute, "daily");
+            case ALERT -> executor.broadcastMessage(user.getChatId(), Emoji.WARNING +
+                    " Рассылка актуальных оповещений началась", adminPanelExecute, "alert");
+        }
+        ;
 
-        executor.broadcastMessage(user.getChatId(), message);
+        adminPanelExecute = false;
     }
 
     public String highlightEnglishWordsAsCode(String text) {
@@ -266,6 +277,10 @@ public class Mailing {
 
     public static boolean isMorningLastMailing() {
         return lastMailingType == MailingType.MORNING;
+    }
+
+    public static boolean isDailyLastMailing() {
+        return lastMailingType == MailingType.DAILY;
     }
 
     public static boolean wasLastMailingAQuestion() {

@@ -152,9 +152,9 @@ public class GoogleSheetsService {
             var errors = exception.getDetails().getErrors().stream()
                     .map(GoogleJsonError.ErrorInfo::getMessage)
                     .collect(Collectors.joining("\n"));
-            log.error("Can't execute request. \nErrors: \n{}", errors);
+            log.warn("Can't execute request. \nErrors: \n{}", errors);
         } catch (IOException exception) {
-            log.error("Can't execute request", exception);
+            log.warn("Can't execute request", exception);
         }
         return null;
     }

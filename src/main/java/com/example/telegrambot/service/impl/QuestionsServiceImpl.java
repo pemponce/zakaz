@@ -1,5 +1,6 @@
 package com.example.telegrambot.service.impl;
 
+import com.example.telegrambot.model.Emoji;
 import com.example.telegrambot.model.Questions;
 import com.example.telegrambot.repository.QuestionsRepository;
 import com.example.telegrambot.service.QuestionsService;
@@ -10,6 +11,8 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 
 @Service
@@ -29,11 +32,13 @@ public class QuestionsServiceImpl implements QuestionsService {
     }
 
     @Override
-    public boolean createQuestion(String question) {
+    public boolean createQuestion(String question, String group) {
         boolean flag = false;
         if (!questionsRepository.existsByQuestion(question) || questionsRepository.findAll().isEmpty()) {
             Questions newQuestion = Questions.builder()
                     .question(question)
+                    .questionGroup(group)
+                    .relevant(true)
                     .morning(false)
                     .build();
             questionsRepository.save(newQuestion);
@@ -54,7 +59,7 @@ public class QuestionsServiceImpl implements QuestionsService {
     public void deleteAllQuestions() {
         try {
             var allQuestions = getAllQuestions().stream().map(Questions::getId).toList();
-            for (Long id: allQuestions) {
+            for (Long id : allQuestions) {
 
                 questionsRepository.deleteById(id);
             }
@@ -63,20 +68,29 @@ public class QuestionsServiceImpl implements QuestionsService {
         }
     }
 
+
+    /*
+    TODO: Сделать для конкретной группы
+     */
     @Override
-    public String getAllQuestionsContent() {
+    public String getAllQuestionsContent(String group) {
         String res = "";
-        List<Questions> questions = new ArrayList<>(questionsRepository.findAll());
-        int counter = 1;
-        String time = "";
-        for (Questions question : questions) {
-            if (question.isMorning()) {
-                time = "10:30";
-            } else {
-                time = "23:50";
+        if (questionsRepository.findAllByRelevantTrueAndQuestionGroup(group).size() > 0) {
+
+            List<Questions> questions = new ArrayList<>(questionsRepository.findAllByRelevantTrueAndQuestionGroup(group));
+            int counter = 1;
+            String time;
+            for (Questions question : questions) {
+                if (question.isMorning()) {
+                    time = "10:30";
+                } else {
+                    time = "23:50";
+                }
+                res += counter + " - " + question.getQuestion() + " (" + time + ")" + "\n";
+                counter++;
             }
-            res += counter + " - " + question.getQuestion() + " (" + time + ")" + "\n";
-            counter++;
+        } else {
+            res += Emoji.WARNING.getData() + "Нет вопросов для группы - " + group;
         }
         return res;
     }
@@ -90,7 +104,7 @@ public class QuestionsServiceImpl implements QuestionsService {
     public boolean setIsMorning(String question, String isMorning) {
         boolean flag = true;
 
-        if(questionsRepository.getQuestionsByQuestion(question) != null) {
+        if (questionsRepository.getQuestionsByQuestion(question) != null) {
             Questions currQuestion = questionsRepository.getQuestionsByQuestion(question);
 
             switch (isMorning.toLowerCase()) {
@@ -125,29 +139,41 @@ public class QuestionsServiceImpl implements QuestionsService {
         return questionsRepository.findAll();
     }
 
+    @Override
+    public List<Questions> getAllQuestionsByRelevantTrue() {
+        return questionsRepository.findAllByRelevantTrue();
+    }
+
     public List<Questions> getMorningQuestions(String group) {
-        return questionsRepository.findByMorningTrueAndQuestionGroup(group);
+        return questionsRepository.findByMorningTrueAndRelevantTrueAndQuestionGroup(group);
     }
 
     @Override
     public List<Questions> getNotMorningQuestions(String group) {
-        return questionsRepository.findByMorningFalseAndQuestionGroup(group);
+        return questionsRepository.findByMorningFalseAndRelevantTrueAndQuestionGroup(group);
+    }
+
+    @Override
+    public String questionListToString(List<Questions> questions) {
+        var text = "";
+        text += IntStream.range(0, questions.size()).mapToObj(
+                i -> (i + 1) + " - " + questions.get(i).getQuestion()
+        ).collect(Collectors.joining("\n"));
+        return text;
     }
 
     @Override
     public Questions findFirstByMorningTrue(String group) {
-        return questionsRepository.findFirstByMorningTrueAndQuestionGroupOrderByIdAsc(group);
+        return questionsRepository.findFirstByMorningTrueAndRelevantTrueAndQuestionGroupOrderByIdAsc(group);
     }
 
     @Override
     public Questions findFirstByMorningFalse(String group) {
-        return questionsRepository.findFirstByMorningFalseAndQuestionGroupOrderByIdAsc(group);
+        return questionsRepository.findFirstByMorningFalseAndRelevantTrueAndQuestionGroupOrderByIdAsc(group);
     }
 
     @Override
-    public void saveQuestion(Questions question) {
-        questionsRepository.save(question);
+    public Questions save(Questions question) {
+        return questionsRepository.save(question);
     }
-
-
 }

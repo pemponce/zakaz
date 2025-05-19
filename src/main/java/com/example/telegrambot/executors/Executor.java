@@ -1,6 +1,7 @@
 package com.example.telegrambot.executors;
 
 import com.example.telegrambot.bot.MyTelegramBot;
+import com.example.telegrambot.command.AdminPanel;
 import com.example.telegrambot.service.UserService;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,17 +17,25 @@ public class Executor {
     private final MyTelegramBot myTelegramBot;
     private final UserService userService;
 
-    public void broadcastMessage(Long chatId, String text) {
+
+    public void broadcastMessage(Long chatId, String text, Boolean adminPanelExecute) {
+        broadcastMessage(chatId, text, adminPanelExecute, null);
+    }
+
+
+        public void broadcastMessage(Long chatId, String text, Boolean adminPanelExecute, String type) {
         executionWrapper(() -> {
             SendMessage message = new SendMessage();
             message.setParseMode("HTML");
             message.setChatId(chatId.toString());
             message.setText(text);
+            if (adminPanelExecute) {
+                message.setReplyMarkup(AdminPanel.contentOfMailingButton(type));
+            }
 
             return myTelegramBot.execute(message);
         }, userService.getUsersByChatId(chatId).getUsername());
     }
-
     private interface BroadcastMessageExecution<T> {
         T execute() throws Exception;
     }
