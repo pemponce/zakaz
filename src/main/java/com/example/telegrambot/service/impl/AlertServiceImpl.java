@@ -44,6 +44,13 @@ public class AlertServiceImpl implements AlertsService {
     }
 
     @Override
+    public String getGroupAlertsFalse(String group) {
+
+        List<Alerts> alerts = alertsRepository.findAllByAlertGroupAndActiveFalse(group);
+        return contentToString(alerts, group);
+    }
+
+    @Override
     public List<Alerts> getAllAlerts(String group) {
         return alertsRepository.findAllByAlertGroup(group);
     }
@@ -51,6 +58,17 @@ public class AlertServiceImpl implements AlertsService {
     @Override
     public String getAllAlertsContent(String group) {
         List<Alerts> alerts = getAllAlerts(group);
+
+        return contentToString(alerts, group);
+    }
+
+    @Override
+    public void save(Alerts alerts) {
+        alertsRepository.save(alerts);
+    }
+
+    public String contentToString(List<Alerts> alerts, String group) {
+
         var messageText = "";
 
         if (alerts.size() > 0) {
@@ -65,12 +83,6 @@ public class AlertServiceImpl implements AlertsService {
         } else {
             messageText += Emoji.WARNING.getData() + "Нет оповещений для группы - " + group;
         }
-
         return messageText;
-    }
-
-    @Override
-    public void save(Alerts alerts) {
-        alertsRepository.save(alerts);
     }
 }

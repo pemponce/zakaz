@@ -115,7 +115,7 @@ public class HandleVerifiedUser {
                             handleAdminCommands.handleAdminCommands(text, chatId);
                         } else {
                             if (text.equals("Вывести уведомления")) {
-                                var content = alertsService.getLastGroupAlert(currUser.getGroup().getName()).getContent();
+                                var content = alertsService.getGroupAlertsFalse(currUser.getGroup().getName()).toString();
                                 messageService.sendMessage(chatId, content);
                             }
                             messageService.sendMessage(chatId, "Дождитесь 23:50 чтобы ответить на вопросы");

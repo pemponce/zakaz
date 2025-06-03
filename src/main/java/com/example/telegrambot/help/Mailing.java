@@ -131,6 +131,7 @@
 package com.example.telegrambot.help;
 
 import com.example.telegrambot.executors.Executor;
+import com.example.telegrambot.googleSheets.service.GoogleSheetsService;
 import com.example.telegrambot.model.*;
 import com.example.telegrambot.repository.UserChatRepository;
 import com.example.telegrambot.service.AlertsService;
@@ -146,7 +147,7 @@ import java.util.List;
 @Component
 @Slf4j
 @RequiredArgsConstructor
-public class Mailing {
+public class Mailing extends GoogleSheetsService {
 
     private final Executor executor;
     private final UserChatRepository userChatRepository;

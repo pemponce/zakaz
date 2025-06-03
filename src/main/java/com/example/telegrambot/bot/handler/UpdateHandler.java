@@ -2,6 +2,7 @@ package com.example.telegrambot.bot.handler;
 
 import com.example.telegrambot.bot.MyTelegramBot;
 import com.example.telegrambot.bot.telegramSender.TelegramSender;
+import com.example.telegrambot.help.Mailing;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
