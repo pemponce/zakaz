@@ -2,6 +2,7 @@ package com.example.telegrambot.bot.handler;
 
 import com.example.telegrambot.bot.panel.PanelSender;
 import com.example.telegrambot.bot.state.StateService;
+import com.example.telegrambot.model.Users;
 import com.example.telegrambot.repository.UserRepository;
 import com.example.telegrambot.service.AlertsService;
 import com.example.telegrambot.service.QuestionsService;
@@ -27,6 +28,7 @@ public class HandleCallback {
         Long chatId = update.getCallbackQuery().getMessage().getChatId();
         String callbackData = update.getCallbackQuery().getData();
         String command = update.getCallbackQuery().getMessage().toString();
+        Users currUser = userRepository.getUsersByUsername(update.getCallbackQuery().getFrom().getUserName());
 
         switch (callbackData) {
             case "add_normal" -> {
@@ -56,7 +58,7 @@ public class HandleCallback {
             }
             case "list_info" -> {
                 sendMessageService.sendMessage(chatId, "Вот список всех оповещений:");
-                sendMessageService.sendMessage(chatId, alertsService.getAllAlertsContent(userRepository.getUsersByChatId(chatId).getGroup().getName()));
+                sendMessageService.sendMessage(chatId, alertsService.getAllAlertsContent(userRepository.getUsersByChatId(chatId).getGroup().getName(), currUser));
                 panelSender.sendAdminPanel(chatId);
             }
             case "morningInformationContent" -> {

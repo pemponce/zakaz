@@ -3,6 +3,7 @@ package com.example.telegrambot.service.impl;
 import com.example.telegrambot.model.Emoji;
 import com.example.telegrambot.model.Questions;
 import com.example.telegrambot.repository.QuestionsRepository;
+import com.example.telegrambot.service.GroupService;
 import com.example.telegrambot.service.QuestionsService;
 import com.fasterxml.jackson.databind.node.LongNode;
 import lombok.AllArgsConstructor;
@@ -20,6 +21,7 @@ import java.util.stream.IntStream;
 public class QuestionsServiceImpl implements QuestionsService {
 
     private QuestionsRepository questionsRepository;
+    private final GroupService groupService;
 
     @Override
     public Long getQuestionsLength() {
@@ -76,7 +78,8 @@ public class QuestionsServiceImpl implements QuestionsService {
     public String getAllQuestionsContent(String group) {
         String res = "";
         if (questionsRepository.findAllByRelevantTrueAndQuestionGroup(group).size() > 0) {
-
+            res += Emoji.QUESTION.getData() + "Вопросы для группы - " + group
+                    + "\n(https://docs.google.com/spreadsheets/d/" + groupService.findByName(group).get().getSpreadsheetId() + ")\n";
             List<Questions> questions = new ArrayList<>(questionsRepository.findAllByRelevantTrueAndQuestionGroup(group));
             int counter = 1;
             String time;
@@ -90,7 +93,8 @@ public class QuestionsServiceImpl implements QuestionsService {
                 counter++;
             }
         } else {
-            res += Emoji.WARNING.getData() + "Нет вопросов для группы - " + group;
+            res += Emoji.WARNING.getData() + "Нет вопросов для группы - " + group
+                    + "\n(https://docs.google.com/spreadsheets/d/" + groupService.findByName(group).get().getSpreadsheetId() + ")\n";
         }
         return res;
     }

@@ -163,7 +163,8 @@ public class Mailing extends GoogleSheetsService {
         MORNING, DAILY, ALERT
     }
 
-    @Scheduled(cron = "0 0/1 * * * *")
+//    @Scheduled(cron = "0 0/1 * * * *")
+    @Scheduled(cron = "0 30 21 * * *")
     public void sendDaily() {
         sendToAllUsers(MailingType.DAILY);
     }
@@ -218,12 +219,14 @@ public class Mailing extends GoogleSheetsService {
             var alertText = alert.getContent();
             alertText = highlightEnglishWordsAsCode(alertText);
             executor.broadcastMessage(chat.getChatId(), Emoji.ALERT.getData().repeat(3) + "\nОповещение для группы " +
-                    user.getGroup().getName() + ":\n" + "<strong>" + alertText + "</strong>", adminPanelExecute);
+                    user.getGroup().getName() + "\n (https://docs.google.com/spreadsheets/d/" + user.getGroup().getSpreadsheetId() + ")"
+                    + ":\n" + "<strong>" + alertText + "</strong>", adminPanelExecute);
             alert.setActive(false);
             alertsService.save(alert);
         } else {
             executor.broadcastMessage(chat.getChatId(), Emoji.ALERT.getData().repeat(3) + "\nНет оповещений для группы " +
-                    user.getGroup().getName(), adminPanelExecute);
+                    user.getGroup().getName() + "\n (https://docs.google.com/spreadsheets/d/" + user.getGroup().getSpreadsheetId() + ")"
+                    , adminPanelExecute);
         }
 
     }
