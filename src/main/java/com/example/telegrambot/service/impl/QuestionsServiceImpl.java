@@ -87,7 +87,7 @@ public class QuestionsServiceImpl implements QuestionsService {
                 if (question.isMorning()) {
                     time = "10:30";
                 } else {
-                    time = "23:50";
+                    time = "21:30";
                 }
                 res += counter + " - " + question.getQuestion() + " (" + time + ")" + "\n";
                 counter++;

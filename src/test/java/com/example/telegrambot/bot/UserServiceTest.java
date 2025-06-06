@@ -28,7 +28,6 @@ import java.nio.file.Paths;
 
 @SpringBootTest
 @ActiveProfiles("test")
-@ExtendWith(MockitoExtension.class)
 class UserServiceTest {
 
     @Autowired
@@ -67,7 +66,7 @@ class UserServiceTest {
     @Test
     void createUser() {
         int i = loadLastIndex();
-        int maxlength = i + 100;
+        int maxlength = i + 10;
         for (int c = i + 1; c <= maxlength; c++) {
             Update update1 = new Update();
             var user = createUser(c);

@@ -68,7 +68,6 @@ public class GoogleSheetsService {
 
     private void createSheetsIfNotExists() {
         createList("usersCode");
-        createList("alerts");
     }
 
     public String createSpreadsheetForGroup(String groupNumber) {

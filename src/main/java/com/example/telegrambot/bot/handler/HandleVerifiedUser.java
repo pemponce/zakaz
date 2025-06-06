@@ -118,7 +118,7 @@ public class HandleVerifiedUser {
                                 var content = alertsService.getGroupAlertsFalse(currUser.getGroup().getName(), currUser);
                                 messageService.sendMessage(chatId, content);
                             }
-                            messageService.sendMessage(chatId, "Дождитесь 23:50 чтобы ответить на вопросы");
+                            messageService.sendMessage(chatId, "Дождитесь 22:30 чтобы ответить на вопросы");
                             panelSender.sendUserPanel(chatId);
                         }
                     }

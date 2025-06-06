@@ -135,6 +135,7 @@ import com.example.telegrambot.googleSheets.service.GoogleSheetsService;
 import com.example.telegrambot.model.*;
 import com.example.telegrambot.repository.UserChatRepository;
 import com.example.telegrambot.service.AlertsService;
+import com.example.telegrambot.service.GroupService;
 import com.example.telegrambot.service.UserService;
 import com.example.telegrambot.service.impl.QuestionsServiceImpl;
 import lombok.RequiredArgsConstructor;
@@ -151,19 +152,18 @@ public class Mailing extends GoogleSheetsService {
 
     private final Executor executor;
     private final UserChatRepository userChatRepository;
+    private final GroupService groupService;
     private final UserService userService;
     private final QuestionsServiceImpl questionsService;
     private final AlertsService alertsService;
-
     private static MailingType lastMailingType;
-
     static boolean adminPanelExecute = false;
 
     private enum MailingType {
         MORNING, DAILY, ALERT
     }
 
-//    @Scheduled(cron = "0 0/1 * * * *")
+    //    @Scheduled(cron = "0 0/1 * * * *")
     @Scheduled(cron = "0 30 21 * * *")
     public void sendDaily() {
         sendToAllUsers(MailingType.DAILY);
@@ -174,6 +174,7 @@ public class Mailing extends GoogleSheetsService {
         sendToAllUsers(MailingType.MORNING);
     }
 
+//    @Scheduled(cron = "0 0/1 * * * *")
     @Scheduled(cron = "0 30 12 * * *")
     public void sendAlerts() {
         sendToAllUsers(MailingType.ALERT);
@@ -181,14 +182,38 @@ public class Mailing extends GoogleSheetsService {
 
     private void sendToAllUsers(MailingType type) {
         List<UserChat> users = userChatRepository.findAll();
+        var groupName = "";
+        for (Group group : groupService.findAllGroups()) {
+            groupName = group.getName();
+            for (UserChat chat : users) {
+                var user = userService.getUsersByChatId(chat.getChatId());
+                if (isUserEligible(user)) {
+                    if (user.getGroup().getName().equals(groupName)) {
+                        processUserByType(user, chat, type);
+                    } else {
+                        continue;
+                    }
+                } else {
+                    if (user.getGroup().getName().equals(groupName)) {
+                        handleIneligibleUser(user, type);
+                    } else {
+                        continue;
+                    }
+                }
+            }
 
-        for (UserChat chat : users) {
-            var user = userService.getUsersByChatId(chat.getChatId());
+            try {
+                if (alertsService.getAllAlerts(groupName) != null && alertsService.getLastGroupAlert(groupName) != null) {
 
-            if (isUserEligible(user)) {
-                processUserByType(user, chat, type);
-            } else {
-                handleIneligibleUser(user, type);
+                    var alert = alertsService.getLastGroupAlert(groupName);
+                    alert.setActive(false);
+                    alertsService.save(alert);
+                } else {
+                    continue;
+                }
+            } catch (NullPointerException e) {
+
+                throw new NullPointerException(String.format("Уведомлений для группы %s нет", groupName));
             }
         }
     }
@@ -218,23 +243,17 @@ public class Mailing extends GoogleSheetsService {
             var alert = alertsService.getLastGroupAlert(user.getGroup().getName());
             var alertText = alert.getContent();
             alertText = highlightEnglishWordsAsCode(alertText);
-            executor.broadcastMessage(chat.getChatId(), Emoji.ALERT.getData().repeat(3) + "\nОповещение для группы " +
-                    user.getGroup().getName() + "\n (https://docs.google.com/spreadsheets/d/" + user.getGroup().getSpreadsheetId() + ")"
-                    + ":\n" + "<strong>" + alertText + "</strong>", adminPanelExecute);
-            alert.setActive(false);
-            alertsService.save(alert);
+            executor.broadcastMessage(chat.getChatId(), Emoji.ALERT.getData().repeat(3) +
+                    "\nОповещение для группы " + user.getGroup().getName() + ":\n"
+                    + "<strong>" + alertText + "</strong>", adminPanelExecute);
         } else {
-            executor.broadcastMessage(chat.getChatId(), Emoji.ALERT.getData().repeat(3) + "\nНет оповещений для группы " +
-                    user.getGroup().getName() + "\n (https://docs.google.com/spreadsheets/d/" + user.getGroup().getSpreadsheetId() + ")"
-                    , adminPanelExecute);
+            executor.broadcastMessage(chat.getChatId(), Emoji.ALERT.getData().repeat(3) +
+                    "\nНет оповещений для группы " + user.getGroup().getName(), adminPanelExecute);
         }
-
     }
 
     private void sendQuestion(Users user, UserChat chat, boolean morning) {
-        var question = morning
-                ? questionsService.findFirstByMorningTrue(user.getGroup().getName())
-                : questionsService.findFirstByMorningFalse(user.getGroup().getName());
+        var question = morning ? questionsService.findFirstByMorningTrue(user.getGroup().getName()) : questionsService.findFirstByMorningFalse(user.getGroup().getName());
 
         if (question != null) {
             executor.broadcastMessage(chat.getChatId(), Emoji.QUESTION.getData().repeat(3) + "\nПожалуйста ответьте на все вопросы", adminPanelExecute);
@@ -258,14 +277,13 @@ public class Mailing extends GoogleSheetsService {
         adminPanelExecute = true;
 
         switch (type) {
-            case MORNING -> executor.broadcastMessage(user.getChatId(), Emoji.WARNING +
-                    " Рассылка утренних вопросов началась", adminPanelExecute, "morning");
-            case DAILY -> executor.broadcastMessage(user.getChatId(), Emoji.WARNING +
-                    " Рассылка дневных вопросов началась", adminPanelExecute, "daily");
-            case ALERT -> executor.broadcastMessage(user.getChatId(), Emoji.WARNING +
-                    " Рассылка актуальных оповещений началась", adminPanelExecute, "alert");
+            case MORNING ->
+                    executor.broadcastMessage(user.getChatId(), Emoji.WARNING + " Рассылка утренних вопросов началась", adminPanelExecute, "morning");
+            case DAILY ->
+                    executor.broadcastMessage(user.getChatId(), Emoji.WARNING + " Рассылка дневных вопросов началась", adminPanelExecute, "daily");
+            case ALERT ->
+                    executor.broadcastMessage(user.getChatId(), Emoji.WARNING + " Рассылка актуальных оповещений началась", adminPanelExecute, "alert");
         }
-        ;
 
         adminPanelExecute = false;
     }

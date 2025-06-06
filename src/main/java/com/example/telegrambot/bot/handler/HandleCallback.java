@@ -75,7 +75,7 @@ public class HandleCallback {
             }
             case "alertInformationContent" -> {
                 sendMessageService.sendMessage(chatId, "Информация об оповещении/обьявлении:");
-                sendMessageService.sendMessage(chatId, alertsService.getLastGroupAlert(userRepository.getUsersByChatId(chatId).getGroup().getName()).getContent());
+                sendMessageService.sendMessage(chatId, alertsService.getLastGroupAlertFalse(userRepository.getUsersByChatId(chatId).getGroup().getName()).getContent());
                 panelSender.sendAdminPanel(chatId);
             }
             default -> {

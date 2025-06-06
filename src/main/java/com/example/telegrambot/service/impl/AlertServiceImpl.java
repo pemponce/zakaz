@@ -46,11 +46,15 @@ public class AlertServiceImpl implements AlertsService {
     public Alerts getLastGroupAlert(String group) {
         return alertsRepository.findTopByAlertGroupAndActiveTrue(group);
     }
+    @Override
+    public Alerts getLastGroupAlertFalse(String group) {
+        return alertsRepository.findTopByAlertGroupAndActiveFalseOrderByIdDesc(group);
+    }
 
     @Override
     public String getGroupAlertsFalse(String group, Users user) {
-
         List<Alerts> alerts = alertsRepository.findAllByAlertGroupAndActiveFalse(group);
+
         return contentToString(alerts, group, user);
     }
 

@@ -1,0 +1,24 @@
+services:
+  backend:
+    image: questionbot
+    container_name: kursovaya
+    depends_on:
+      - postgres
+    ports:
+      - "8080-8888:8080-8888"
+    env_file: .env
+    environment:
+      TZ: Europe/Moscow
+    build:
+      context: image/
+    restart: always
+  postgres:
+    image: postgres
+    container_name: postgres_questionbot
+    hostname: postgres
+    env_file: .env
+    volumes:
+      - .:/docker-entrypoint-initdb.d
+    ports:
+      - "3050:5432"
+    restart: always

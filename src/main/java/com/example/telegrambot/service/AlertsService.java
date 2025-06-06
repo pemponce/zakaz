@@ -10,6 +10,7 @@ public interface AlertsService {
     void deleteAlert(String content, String group);
     Alerts getAlert(String content, String group);
     Alerts getLastGroupAlert(String group);
+    Alerts getLastGroupAlertFalse(String group);
     String getGroupAlertsFalse(String group, Users user);
     List<Alerts> getAllAlerts(String group);
     String getAllAlertsContent(String group, Users user);

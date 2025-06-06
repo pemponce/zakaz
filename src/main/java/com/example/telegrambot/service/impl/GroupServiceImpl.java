@@ -6,6 +6,7 @@ import com.example.telegrambot.service.GroupService;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -17,6 +18,11 @@ public class GroupServiceImpl implements GroupService {
     @Override
     public void create(Group group) {
         groupRepository.save(group);
+    }
+
+    @Override
+    public List<Group> findAllGroups() {
+        return groupRepository.findAll();
     }
 
     @Override
